@@ -109,7 +109,7 @@ void muiProcessInput(mu_Context* ctx) {
     int posY = GetMouseY();
     mu_input_mousemove(ctx, posX, posY);
 
-    int mouseScroll = GetMouseWheelMove();
+    int mouseScroll = (int)GetMouseWheelMove();
     mu_input_scroll(ctx, 0, i32(-SCROLL_SPEED * mouseScroll));
 
     // keys
@@ -171,17 +171,17 @@ void muiRender(mu_Context* muCtx) {
 
             case MU_COMMAND_TEXT: {
                 Font* f = (Font*) cmd->text.font;
-                DrawTextEx(*f, cmd->text.str, Vector2{(float)cmd->text.pos.x, (float)cmd->text.pos.y}, f->baseSize, FONT_SPACING, ToColor(cmd->text.color));
+                DrawTextEx(*f, cmd->text.str, Vector2{(float)cmd->text.pos.x, (float)cmd->text.pos.y}, (float) f->baseSize, FONT_SPACING, ToColor(cmd->text.color));
             }
             break;
 
             case MU_COMMAND_ICON: {
-                int x = (float)(cmd->icon.rect.x) + ((float)(cmd->icon.rect.w) - ICON_SIZE) / 2;
-                int y = (float)(cmd->icon.rect.y) + ((float)(cmd->icon.rect.h) - ICON_SIZE) / 2;
+                int x = (int)((float)(cmd->icon.rect.x) + ((float)(cmd->icon.rect.w) - ICON_SIZE) / 2);
+                int y = (int)((float)(cmd->icon.rect.y) + ((float)(cmd->icon.rect.h) - ICON_SIZE) / 2);
 
                 i32 index = cmd->icon.id;
-                Rectangle src  = {float(ICON_SIZE * index), 0, ICON_SIZE, ICON_SIZE };
-                Rectangle dest = {x, y, ICON_SIZE, ICON_SIZE};
+                Rectangle src  = {float(ICON_SIZE * index), 0, (float)ICON_SIZE, (float)ICON_SIZE };
+                Rectangle dest = {(float)x, (float)y, (float)ICON_SIZE, (float)ICON_SIZE};
 
                 DrawTexturePro(iconsTexture, src, dest, Vector2{0, 0}, 0, ToColor(cmd->icon.color));
             }
@@ -206,8 +206,8 @@ static int uint8_slider(mu_Context *ctx, unsigned char *value, int low, int high
   static float tmp;
   mu_push_id(ctx, &value, sizeof(value));
   tmp = *value;
-  int res = mu_slider_ex(ctx, &tmp, low, high, 0, "%.0f", MU_OPT_ALIGNCENTER);
-  *value = tmp;
+  int res = mu_slider_ex(ctx, &tmp, (mu_Real) low, (mu_Real) high, 0, "%.0f", MU_OPT_ALIGNCENTER);
+  *value = (unsigned char)tmp;
   mu_pop_id(ctx);
   return res;
 }
@@ -232,7 +232,7 @@ static void style_window(mu_Context *ctx) {
   };
 
   if (mu_begin_window(ctx, "Style Editor", mu_rect(350, 250, 300, 240))) {
-    int sw = mu_get_current_container(ctx)->body.w * 0.14;
+    int sw = (int)(mu_get_current_container(ctx)->body.w * 0.14);
     int rows[] = { 80, sw, sw, sw, sw, -1 };
     mu_layout_row(ctx, 6, rows, 0);
     for (int i = 0; colors[i].label; i++) {

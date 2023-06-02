@@ -2,7 +2,7 @@
 
 if NOT "%Platform%" == "X64" IF NOT "%Platform%" == "x64" (call vcvarsall x64)
 
-set exe_name=template
+set exe_name=TexasMiami
 set compile_flags= -nologo /Zi /FC /I ../include/ /W3
 set linker_flags= raylibdll.lib /INCREMENTAL:NO
 set linker_path="../bin/"
