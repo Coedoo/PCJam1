@@ -50,6 +50,16 @@ void UpdateDrawFrame();
 Camera camera;
 mu_Context muCtx;
 
+template<typename T>
+T max(T& a, T& b) {
+    return a > b ? a : b;
+}
+
+template<typename T>
+T min(T& a, T& b) {
+    return a < b ? a : b;
+}
+
 void DebugWindow() {
     if(mu_begin_window(&muCtx, "Debug", mu_rect(0, 0, 200, 150))) {
         mu_checkbox(&muCtx, "Camera control", &controlCamera);
@@ -134,6 +144,7 @@ void UpdateDrawFrame()
 
                 assert(a->collisionType != None && b->collisionType != None);
 
+                bool collision = false;
                 // @TODO: implement other collision types
                 if(a->collisionType == AABB && b->collisionType == AABB) {
                     float aLeft  = a->position.x - a->collisionSize.x / 2;
@@ -146,15 +157,40 @@ void UpdateDrawFrame()
                     float bTop   = b->position.y + b->collisionSize.y / 2;
                     float bBot   = b->position.y - b->collisionSize.y / 2;
 
-                    bool collision = aLeft <= bRight &&
-                                     aRight >= bLeft &&
-                                     aBot <= bTop    &&
-                                     aTop >= bBot;
+                    collision = aLeft <= bRight &&
+                                 aRight >= bLeft &&
+                                 aBot <= bTop    &&
+                                 aTop >= bBot;
 
-                    if(collision) {
-                        printf("Collision!!\n");
-                    }
                 }
+                else if(a->collisionType == Circle && b->collisionType == Circle) {
+                    float distSqr = Vector3DistanceSqr(a->position, b->position);
+                    float rad = a->collisionSize.x + b->collisionSize;
+                    collision = dist < rad * rad;
+                }
+                else if((a->collisionType == AABB   && b->collisionType == Circle) && 
+                        (a->collisionType == Circle && b->collisionType == AABB)) {
+                    Entity aabb   = a->collisionType == AABB ? a : b;
+                    Entity circle = a->collisionType == Circle ? a : b;
+
+                    float minX = aabb->position.x - aabb->collisionSize.x / 2;
+                    float maxX = aabb->position.x + aabb->collisionSize.x / 2;
+                    float maxY = aabb->position.y + aabb->collisionSize.y / 2;
+                    float minY = aabb->position.y - aabb->collisionSize.y / 2;
+
+                    float x = max(minX, min(circle->position.x, maxX));
+                    float y = max(minY, min(circle->position.y, maxY));
+
+                    float dist = (x - circle->position.x) * (x - circle->position.x) +
+                                 (y - circle->position.y) * (y - circle->position.y);
+
+                    collision = dis < circle->collisionSize.x * circle->collisionSize.x;
+                } 
+
+                if(collision) {
+                    printf("Collision!!\n");
+                }
+
             }
         }
     }
