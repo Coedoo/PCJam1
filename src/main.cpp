@@ -37,6 +37,9 @@ struct Str8 {
 #include "microui/microui.c"
 #include "microui/microui_renderer.cpp"
 
+Texture2D bulletTexture;
+Texture2D blankTexture;
+
 #include "config.h"
 
 #include "common.cpp"
@@ -70,9 +73,19 @@ int main()
     ///////////
     
     Texture2D theoTexture = LoadTexture("assets/theo_1.png");
+    bulletTexture = LoadTexture("assets/theo_1.png");
+    blankTexture = LoadTexture("assets/blank.png");
 
     //////
     CreatePlayerEntity(&theoTexture);
+
+    // Entity* blank = CreateEntity();
+    // blank->flags = (Render | Collision);
+    // blank->texture = &blankTexture;
+    // blank->position.y = 2;
+    // blank->scale = {1, 1, 1};
+    // blank->collisionType = AABB;
+    // blank->collisionSize = {1, 1};
 
     muiInit(&muCtx);
 
@@ -94,16 +107,57 @@ void UpdateDrawFrame()
     muiProcessInput(&muCtx);
     mu_begin(&muCtx);
 
-    for(int i = 0; i < MAX_ENTITY; i++) {
+    if(showDebug == false) {
+        for(int i = 0; i < MAX_ENTITY; i++) {
 
-        if(entities[i].ControlFunction) {
-            entities[i].ControlFunction(entities + i);
+            if(entities[i].ControlFunction) {
+                entities[i].ControlFunction(entities + i);
+            }
+
+            // EntityFlag f = entities[i].flags;
+
         }
 
-        EntityFlag f = entities[i].flags;
+        // collisions
+        // @TODO: I'm not sure if it would be better to put it in main loop
+        for(int ai = 0; ai < MAX_ENTITY; ai++) {
+            Entity* a = entities + ai;
+            if((a->flags & Collision) == 0) {
+                continue;
+            }
 
+            for(int bi = ai + 1; bi < MAX_ENTITY; bi++) {
+                Entity* b = entities + bi;
+                if((b->flags & Collision) == 0) {
+                    continue;
+                }
+
+                assert(a->collisionType != None && b->collisionType != None);
+
+                // @TODO: implement other collision types
+                if(a->collisionType == AABB && b->collisionType == AABB) {
+                    float aLeft  = a->position.x - a->collisionSize.x / 2;
+                    float aRight = a->position.x + a->collisionSize.x / 2;
+                    float aTop   = a->position.y + a->collisionSize.y / 2;
+                    float aBot   = a->position.y - a->collisionSize.y / 2;
+
+                    float bLeft  = b->position.x - b->collisionSize.x / 2;
+                    float bRight = b->position.x + b->collisionSize.x / 2;
+                    float bTop   = b->position.y + b->collisionSize.y / 2;
+                    float bBot   = b->position.y - b->collisionSize.y / 2;
+
+                    bool collision = aLeft <= bRight &&
+                                     aRight >= bLeft &&
+                                     aBot <= bTop    &&
+                                     aTop >= bBot;
+
+                    if(collision) {
+                        printf("Collision!!\n");
+                    }
+                }
+            }
+        }
     }
-
 
     if(controlCamera) {
         UpdateCamera(&camera, CAMERA_FIRST_PERSON);
@@ -136,7 +190,6 @@ void UpdateDrawFrame()
             }
         }
     }
-
     EndMode3D();
 
     mu_end(&muCtx);
