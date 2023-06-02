@@ -50,13 +50,20 @@ void UpdateDrawFrame();
 Camera camera;
 mu_Context muCtx;
 
+Shader shader;
+int timeLoc;
+Model terrainModel;
+
+int resLoc;
+Shader skyboxShader;
+
 template<typename T>
-T max(T& a, T& b) {
+T max(T a, T b) {
     return a > b ? a : b;
 }
 
 template<typename T>
-T min(T& a, T& b) {
+T min(T a, T b) {
     return a < b ? a : b;
 }
 
@@ -67,6 +74,66 @@ void DebugWindow() {
     }
 }
 
+// //// terrain mesh
+Mesh CreateTerrainMesh() {
+    Mesh mesh = {};
+
+    int vertCount = terrainResolution * terrainResolution;
+    int quadsCount = (terrainResolution - 1) * (terrainResolution - 1);
+    int trisCount = quadsCount * 6;
+
+    mesh.triangleCount = trisCount;
+    mesh.vertexCount = vertCount;
+
+    mesh.vertices  = (float*) malloc(vertCount * sizeof(Vector3));
+    mesh.texcoords = (float*) malloc(vertCount * sizeof(Vector2));
+    mesh.indices   = (unsigned short*) malloc(trisCount * sizeof(unsigned short));
+
+    Vector3* verts = (Vector3*) mesh.vertices;
+    Vector2* uvs   = (Vector2*) mesh.texcoords;
+
+    int tIdx = 0;
+    int vIdx = 0;
+    for(int y = 0; y < terrainResolution - 1; y++) {
+        for(int x = 0; x < terrainResolution - 1; x++) {
+            // int i = y * terrainResolution + x;
+            // int base = i * 4;
+
+            verts[vIdx + 0] = {(float) x,     0, (float) y};
+            verts[vIdx + 1] = {(float) x + 1, 0, (float) y};
+            verts[vIdx + 2] = {(float) x,     0, (float) y + 1};
+            verts[vIdx + 3] = {(float) x + 1, 0, (float) y + 1};
+
+            uvs[vIdx + 0]   = {(float) (x % 2), (float) (y % 2)};
+            uvs[vIdx + 1]   = {(float) (x % 2), (float) (y % 2)};
+            uvs[vIdx + 2]   = {(float) (x % 2), (float) (y % 2)};
+            uvs[vIdx + 3]   = {(float) (x % 2), (float) (y % 2)};
+
+            mesh.indices[tIdx++] = (unsigned short) (vIdx + 0);
+            mesh.indices[tIdx++] = (unsigned short) (vIdx + 2);
+            mesh.indices[tIdx++] = (unsigned short) (vIdx + 1);
+
+            mesh.indices[tIdx++] = (unsigned short) (vIdx + 1);
+            mesh.indices[tIdx++] = (unsigned short) (vIdx + 2);
+            mesh.indices[tIdx++] = (unsigned short) (vIdx + 3);
+
+            vIdx += 4;
+        }
+    }
+
+    // for(int i = 0; i < quadsCount; i++) {
+    //     mesh.indices[tIdx++] = (unsigned short) (base + 0);
+    //     mesh.indices[tIdx++] = (unsigned short) (base + 1);
+    //     mesh.indices[tIdx++] = (unsigned short) (base + 2);
+
+    //     mesh.indices[tIdx++] = (unsigned short) (base + 0);
+    //     mesh.indices[tIdx++] = (unsigned short) (base + 2);
+    //     mesh.indices[tIdx++] = (unsigned short) (base + 3);
+    // }
+
+    UploadMesh(&mesh, false);
+    return mesh;
+}
 
 int main()
 {
@@ -96,6 +163,16 @@ int main()
     // blank->scale = {1, 1, 1};
     // blank->collisionType = AABB;
     // blank->collisionSize = {1, 1};
+
+    // terrainModel = LoadModelFromMesh(CreateTerrainMesh());
+    terrainModel = LoadModelFromMesh(GenMeshPlane(terrainResolution, terrainResolution, terrainResolution, terrainResolution));
+
+    shader = LoadShader("assets/shaders/terrain.vert", "assets/shaders/terrain.frag");
+    timeLoc = GetShaderLocation(shader, "time");
+    terrainModel.materials[0].shader = shader;
+
+    skyboxShader = LoadShader(0, "assets/shaders/skybox.frag");
+    resLoc = GetShaderLocation(skyboxShader, "resolution");
 
     muiInit(&muCtx);
 
@@ -165,13 +242,13 @@ void UpdateDrawFrame()
                 }
                 else if(a->collisionType == Circle && b->collisionType == Circle) {
                     float distSqr = Vector3DistanceSqr(a->position, b->position);
-                    float rad = a->collisionSize.x + b->collisionSize;
-                    collision = dist < rad * rad;
+                    float rad = a->collisionSize.x + b->collisionSize.x;
+                    collision = distSqr < rad * rad;
                 }
                 else if((a->collisionType == AABB   && b->collisionType == Circle) && 
                         (a->collisionType == Circle && b->collisionType == AABB)) {
-                    Entity aabb   = a->collisionType == AABB ? a : b;
-                    Entity circle = a->collisionType == Circle ? a : b;
+                    Entity* aabb   = a->collisionType == AABB ? a : b;
+                    Entity* circle = a->collisionType == Circle ? a : b;
 
                     float minX = aabb->position.x - aabb->collisionSize.x / 2;
                     float maxX = aabb->position.x + aabb->collisionSize.x / 2;
@@ -184,7 +261,7 @@ void UpdateDrawFrame()
                     float dist = (x - circle->position.x) * (x - circle->position.x) +
                                  (y - circle->position.y) * (y - circle->position.y);
 
-                    collision = dis < circle->collisionSize.x * circle->collisionSize.x;
+                    collision = dist < circle->collisionSize.x * circle->collisionSize.x;
                 } 
 
                 if(collision) {
@@ -196,7 +273,7 @@ void UpdateDrawFrame()
     }
 
     if(controlCamera) {
-        UpdateCamera(&camera, CAMERA_FIRST_PERSON);
+        UpdateCamera(&camera, CAMERA_FREE);
     }
 
     if(IsKeyPressed(KEY_Y)) {
@@ -211,10 +288,37 @@ void UpdateDrawFrame()
 
     DrawFPS(0, 0);
 
+    Vector2 res = {GetScreenWidth(), GetScreenHeight()};
+    SetShaderValue(skyboxShader, resLoc, &res, RL_SHADER_UNIFORM_VEC2);
+
+    BeginShaderMode(skyboxShader);
+    rlBegin(RL_QUADS);
+        rlTexCoord2f(1, 1);
+        rlVertex2f(res.x, 0);
+
+
+        rlTexCoord2f(0, 1);
+        rlVertex2f(0, 0);
+
+        rlTexCoord2f(0, 0);
+        rlVertex2f(0, res.y);
+
+
+        rlTexCoord2f(1, 0);
+        rlVertex2f(res.x, res.y);
+
+    rlEnd();
+    EndShaderMode();
+
+
     BeginMode3D(camera);
     {
         DrawGrid(15, 15);
         // DrawCube({0,0,0}, 1, 1, 1, RED);
+
+        float t = (float) GetTime();
+        SetShaderValue(shader, timeLoc, &t, RL_SHADER_UNIFORM_FLOAT);
+        DrawModel(terrainModel, {0, 0, -terrainResolution / 2}, 1.0f, WHITE);
 
         /// Render Entities
         for(int i = 0; i < MAX_ENTITY; i++) {
