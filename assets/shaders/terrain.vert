@@ -2,11 +2,13 @@
 
 layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec2 aUV;
+layout(location = 5) in vec2 aUV2;
 
 uniform mat4 mvp;
 uniform float time;
 
 out vec2 uv;
+out vec2 uv2;
 
 //
 // Description : Array and textureless GLSL 2D simplex noise function.
@@ -82,6 +84,7 @@ float snoise(vec2 v)
 
 void main() {
     uv = aUV;
+    uv2 = aUV2;
 
     float x = 2*abs(uv.x - 0.5f);
     float center = x * x;
@@ -89,6 +92,5 @@ void main() {
 
     vec4 pos = vec4(aPos, 1.0);
     pos.y += 10 * (snoise(vec2(pos.x, pos.z) * 0.1f) * 0.5f + 0.5f) * center;
-    // pos.y += 10;
     gl_Position = mvp * pos;
 }

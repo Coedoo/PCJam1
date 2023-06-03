@@ -7,7 +7,7 @@ enum EntityFlag {
     Render = (1 << 0),
     Collision = (1 << 1),
     HaveHealth = (1 << 2),
-    Damageable = (1 << 3)
+    Damaging = (1 << 3)
 };
 
 enum CollisionType {
@@ -22,9 +22,18 @@ enum CollisionFlag {
     ColFlag_Damage = (1 << 1)
 };
 
+enum CollisionLayers {
+    ColLay_None = 0,
+    ColLay_Player = (1 << 0),
+    ColLay_Enemy  = (1 << 1),
+    ColLay_PlayerBullet  = (1 << 2),
+    ColLay_EnemyBullet  = (1 << 3),
+};
+
 struct Entity {
     EntityHandle handle;
     bool toDestroy;
+    char* tag;
 
     void (*ControlFunction)(Entity* entity);
 
@@ -40,12 +49,15 @@ struct Entity {
 
     //
     int maxHP;
-    int currentHP;
+    int HP;
 
     // collision
     CollisionType collisionType;
     u32 collisionflags;
     Vector2 collisionSize;
+    u32 collisionLayer;
+
+    // Damage
 };
 
 
@@ -77,6 +89,11 @@ Entity* CreateEntity() {
     return entities + handle.index;
 }
 
+void DestroyEntity(EntityHandle handle) {
+    entities[handle.index].toDestroy = true; 
+    printf("Destroing entity: [%s]\n", entities[handle.index].tag);
+}
+
 void CreateBullet(Vector3 position);
 
 /////
@@ -98,12 +115,17 @@ void PlayerControlFunc(Entity* player) {
 EntityHandle CreatePlayerEntity(Texture2D* texture) {
     Entity* player = CreateEntity();
 
+    player->tag = "Player";
+
     player->flags = (EntityFlag)(Render | Collision | HaveHealth);
     player->scale = {1, 1, 1};
     player->texture = texture;
 
     player->collisionType = AABB;
     player->collisionSize = {1, 1};
+
+    player->maxHP = 100;
+    player->HP = 100;
 
     player->ControlFunction = PlayerControlFunc;
 
@@ -121,8 +143,10 @@ void BulletControlFunc(Entity* bullet) {
 void CreateBullet(Vector3 position) {
     Entity* bullet = CreateEntity();
 
+    bullet->tag = "Bullet";
+
     bullet->position = position;
-    bullet->flags = (EntityFlag)(EntityFlag::Render | EntityFlag::Collision);
+    bullet->flags = (EntityFlag)(Render | Collision | Damaging);
     bullet->scale = {0.2f, 0, 0};
     bullet->texture = &bulletTexture;
 
@@ -130,6 +154,7 @@ void CreateBullet(Vector3 position) {
     bullet->collisionSize.x = 0.1f;
 
     bullet->collisionflags = (CollisionFlag)(ColFlag_DestroyAfterHit | ColFlag_Damage);
+    bullet->collisionLayer = ColLay_PlayerBullet;
 
     bullet->ControlFunction = BulletControlFunc;
 }
