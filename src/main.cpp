@@ -47,6 +47,8 @@ Texture2D blankTexture;
 Camera camera;
 BoundingBox cameraBounds;
 
+Shader bloomShader;
+
 #include "config.h"
 
 #include "common.cpp"
@@ -58,10 +60,10 @@ void UpdateDrawFrame();
 
 mu_Context muCtx;
 
-Shader shader;
-int timeLoc;
+Shader terrainShader;
 Model terrainModel;
 
+int timeLoc;
 int resLoc;
 Shader skyboxShader;
 
@@ -69,6 +71,8 @@ TitleScreen titleScreen;
 Level level;
 
 bool isInTitleScreen;
+
+RenderTexture2D renderTexture;
 
 void DebugWindow() {
     if(mu_begin_window(&muCtx, "Debug", mu_rect(0, 0, 200, 150))) {
@@ -108,7 +112,7 @@ Mesh CreateTerrainMesh() {
     for(int y = 0; y < terrainResY; y++) {
         for(int x = 0; x < terrainResX; x++) {
             int idx = x + y * terrainResX;
-            verts[idx] = {(float) x - offset, 0, (float) y - offset};
+            verts[idx] = {(float) x - offset, 0, (float) y};
             uvs[idx] = {(float)x / (terrainResX - 1), (float) y / (terrainResY - 1)};
             uvs2[idx] = {(float)(x%2) , (float)(y%2)};
         }
@@ -190,23 +194,28 @@ int main()
 
     terrainModel = LoadModelFromMesh(CreateTerrainMesh());
 
-    shader = LoadShader("assets/shaders/terrain.vert", "assets/shaders/terrain.frag");
-    timeLoc = GetShaderLocation(shader, "time");
-    terrainModel.materials[0].shader = shader;
+    terrainShader = LoadShader("assets/shaders/terrain.vert", "assets/shaders/terrain.frag");
+    // timeLoc = GetShaderLocation(terrainShader, "time");
+    terrainModel.materials[0].shader = terrainShader;
 
     skyboxShader = LoadShader(0, "assets/shaders/skybox.frag");
     resLoc = GetShaderLocation(skyboxShader, "resolution");
+    timeLoc = GetShaderLocation(skyboxShader, "time");
+
+    bloomShader = LoadShader(0, "assets/shaders/bloom.frag");
 
     InitEnemyPresets();
 
     FillSpawnSequence(&level);
 
+    renderTexture = LoadRenderTexture(windowWidth, windowHeight);
+
     muiInit(&muCtx);
 
     //////////////////////////
     
-    rlDisableDepthTest();
-    rlDisableDepthMask();
+    // rlDisableDepthTest();
+    // rlDisableDepthMask();
 
     /////////////////////////
 
@@ -364,7 +373,10 @@ void UpdateDrawFrame()
         DebugWindow();
     }
 
-    BeginDrawing();
+    mu_end(&muCtx);
+
+    // BeginDrawing();
+    BeginTextureMode(renderTexture);
     ClearBackground({219, 216, 225, 0});
 
     DrawFPS(0, 0);
@@ -398,9 +410,11 @@ void UpdateDrawFrame()
         // DrawCube({0,0,0}, 1, 1, 1, RED);
 
         float t = (float) GetTime();
-        SetShaderValue(shader, timeLoc, &t, RL_SHADER_UNIFORM_FLOAT);
-        DrawModel(terrainModel, {0, -15, -terrainResY * 2 + 4}, 8.0f, WHITE);
+        SetShaderValue(skyboxShader, timeLoc, &t, RL_SHADER_UNIFORM_FLOAT);
 
+        for(int i = 0; i < 5; i++) {
+            DrawModel(terrainModel, {0, -15, -terrainResY*8*(i+1) + (float)GetTime() * 9}, 8.0f, WHITE);
+        }
         /// Render Entities
         for(int i = 0; i < MAX_ENTITY; i++) {
             Entity* e = entities + i;
@@ -428,6 +442,18 @@ void UpdateDrawFrame()
         }
     }
     EndMode3D();
+    EndTextureMode();
+
+    BeginDrawing();
+    BeginShaderMode(bloomShader);
+    
+        DrawTextureRec(renderTexture.texture, { 0, 0, (float)renderTexture.texture.width, (float)-renderTexture.texture.height }, { 0, 0 }, WHITE);
+    EndShaderMode();
+
+        UpdateAndDrawTitleScreen(&titleScreen);
+        muiRender(&muCtx);
+    EndDrawing();
+
 
     for(int i = 0; i < MAX_ENTITY; i++) {
         Entity* e = entities + i;
@@ -437,8 +463,4 @@ void UpdateDrawFrame()
             e->handle.generation = genTmp;
         }
     }
-
-    mu_end(&muCtx);
-    muiRender(&muCtx);
-    EndDrawing();
 }

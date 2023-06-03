@@ -24,7 +24,7 @@ void main() {
     vec3 edgeCol = vec3(1, 0, 1);
     vec3 surfaceColor = vec3(0.1, 0, 0.1);
 
-    vec3 edge = max(edgeFun(mX), edgeFun(mY)) * edgeCol;
+    vec3 edge = (edgeFun(mX) + edgeFun(mY)) * edgeCol;
     vec3 c = surfaceColor + edge;
 
     color = vec4(c, 1);

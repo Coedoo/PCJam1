@@ -6,6 +6,7 @@ in vec2 fragTexCoord;
 // Output fragment color
 out vec4 color;
 
+uniform float time;
 uniform vec2 resolution;
 
 float sdCircle( vec2 p, float r ) {
@@ -21,13 +22,14 @@ void main() {
 
 
     vec3 bg = mix(vec3(0.8,0,0.5), vec3(0.8,0.3, 0.8), uv.y);
-
-    float sdf = sdCircle(uv - sunPos, sunSize);
     
-    float s = step(sin(uv.y * 40.0), 0.0);
-    
-    
-    vec3 c = mix(bg, vec3(1, 1, 1)*s, step(sdf, 0.0));
+    vec2 sunUV = uv - sunPos;
+    float sdf = sdCircle(sunUV, sunSize);
+  
+    float s = step(cos(uv.y * 40.0 + time), 0.0) + 0.7f;
+    vec3 sunColor = mix(vec3(0.93, 0.418, 0.013), vec3(0.995, 0.812, 0.174), (sunUV.y + 0.5)) * s;
+  
+    vec3 c = mix(bg, sunColor, smoothstep(0.03, 0.0, sdf));
     
     color = vec4(c, 1);
 }
