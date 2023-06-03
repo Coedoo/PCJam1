@@ -37,8 +37,15 @@ struct Str8 {
 #include "microui/microui.c"
 #include "microui/microui_renderer.cpp"
 
+#include "arena.cpp"
+
+Arena tempArena;
+
 Texture2D bulletTexture;
 Texture2D blankTexture;
+
+Camera camera;
+BoundingBox cameraBounds;
 
 #include "config.h"
 
@@ -48,7 +55,6 @@ Texture2D blankTexture;
 
 void UpdateDrawFrame();
 
-Camera camera;
 mu_Context muCtx;
 
 Shader shader;
@@ -74,6 +80,13 @@ void DebugWindow() {
     if(mu_begin_window(&muCtx, "Debug", mu_rect(0, 0, 200, 150))) {
         mu_checkbox(&muCtx, "Camera control", &controlCamera);
         mu_checkbox(&muCtx, "Draw Collision", &drawCollisionShapes);
+
+        char tmp[128];
+        Vector2 pos = GetMousePosition();
+        sprintf(tmp, "Pos: {%f, %f}", pos.x, pos.y);
+
+        mu_text(&muCtx, tmp);
+
         mu_end_window(&muCtx);
     }
 }
@@ -87,10 +100,10 @@ Mesh CreateTerrainMesh() {
     mesh.vertexCount = vertsCount;
     mesh.triangleCount = (terrainResolution - 1) * (terrainResolution - 1) * 2;
 
-    mesh.vertices   = (float*) RL_MALLOC(vertsCount * sizeof(float) * 3);
-    mesh.texcoords  = (float*) RL_MALLOC(vertsCount * sizeof(float) * 2);
-    mesh.texcoords2 = (float*) RL_MALLOC(vertsCount * sizeof(float) * 2);
-    mesh.indices    = (unsigned short*) RL_MALLOC(trianglesCount * sizeof(unsigned short));
+    mesh.vertices   = (float*) arena_alloc(&tempArena, vertsCount * sizeof(float) * 3);
+    mesh.texcoords  = (float*) arena_alloc(&tempArena, vertsCount * sizeof(float) * 2);
+    mesh.texcoords2 = (float*) arena_alloc(&tempArena, vertsCount * sizeof(float) * 2);
+    mesh.indices    = (unsigned short*) arena_alloc(&tempArena, trianglesCount * sizeof(unsigned short));
 
     float offset = terrainResolution / 2.0f - 0.5f;
 
@@ -124,11 +137,6 @@ Mesh CreateTerrainMesh() {
 
     UploadMesh(&mesh, false);
 
-    RL_FREE(mesh.vertices);
-    RL_FREE(mesh.texcoords2);
-    RL_FREE(mesh.texcoords);
-    RL_FREE(mesh.indices);
-
     return mesh;
 }
 
@@ -136,14 +144,25 @@ int main()
 {
     InitWindow(1700, 900, "Template");
 
+    void* tempArenaBuffer = malloc(TempArenaSize);
+    arena_init(&tempArena, tempArenaBuffer, TempArenaSize);
+
     // Setup camera
-    camera.position = Vector3{ 0.0f, 2.0f, 4.0f };
+    camera.position = Vector3{ 0.0f, 2.0f, 3.4f };
     camera.fovy = 90.0f;
     
     camera.target   =  camera.position +  Vector3{0, 0, -1};
     camera.up       = Vector3{ 0.0f, 1.0f, 0.0f };
     camera.projection = CAMERA_PERSPECTIVE;
 
+    Ray botLeft  = GetMouseRay({0, (float)GetScreenHeight()}, camera);
+    Ray topRight = GetMouseRay({(float)GetScreenWidth(), 0}, camera);
+
+    RayCollision min = GetRayCollisionQuad(botLeft, {-1000, 1000, 0}, {1000, 1000, 0}, {1000, -1000, 0}, {-1000, -1000, 0});
+    RayCollision max = GetRayCollisionQuad(topRight, {-1000, 1000, 0}, {1000, 1000, 0}, {1000, -1000, 0}, {-1000, -1000, 0});
+
+    cameraBounds.min = min.point;
+    cameraBounds.max = max.point;
     ///////////
     
     Texture2D theoTexture = LoadTexture("assets/theo_1.png");
@@ -201,6 +220,8 @@ int main()
 
 void UpdateDrawFrame()
 {
+    arena_free_all(&tempArena);
+
     muiProcessInput(&muCtx);
     mu_begin(&muCtx);
 
@@ -309,7 +330,7 @@ void UpdateDrawFrame()
                     // showDebug = true;
                     //@TODO: Handle collision function
                     if(a->collisionflags & ColFlag_Damage) {
-                        b->HP -= 1;
+                        b->HP -= a->damage;
                     }
                     if(a->collisionflags & ColFlag_DestroyAfterHit) {
                         DestroyEntity(a->handle);
@@ -317,7 +338,7 @@ void UpdateDrawFrame()
 
 
                     if(b->collisionflags & ColFlag_Damage) {
-                        a->HP -= 1;
+                        a->HP -= b->damage;
                     }
                     if(b->collisionflags & ColFlag_DestroyAfterHit) {
                         DestroyEntity(b->handle);
@@ -386,6 +407,8 @@ void UpdateDrawFrame()
         }
 
         if(drawCollisionShapes) {
+            DrawBoundingBox(cameraBounds, GREEN);
+
             for(int i = 0; i < MAX_ENTITY; i++) {
                 Entity* e = entities + i;
                 if(e->flags & Collision) {

@@ -1,7 +1,7 @@
 
 struct EnemySpawn {
     double spawnTime;
-    Vector3 spawnPoint;
+    Vector2 spawnPoint;
     EnemyType enemyType;
 };
 
@@ -36,18 +36,31 @@ void SpawnSequence(Level level) {
             
             printf("Spawn index: %d, [%s] at time: %f\n", i, preset.tag, currentTime);
             
-            SpawnEntity(preset, s->spawnPoint);
+            Vector3 point = {};
+            point.x = Lerp(cameraBounds.min.x, cameraBounds.max.x, s->spawnPoint.x);
+            point.y = Lerp(cameraBounds.max.x, cameraBounds.min.y, s->spawnPoint.y);
+            SpawnEntity(preset, point);
         }
     }
 }
 
+
+void SimpleSequence(Level* level, int count, double time, float timeInterval, Vector2 spawnPoint, Vector2 pointInverval, EnemyType enemyType) {
+
+    for(int i = 0; i < count; i++) {
+        EnemySpawn* spawn = level->spawnSequence + level->spawnsCount;
+
+        spawn->enemyType = enemyType;
+        spawn->spawnTime = time + i * timeInterval;
+        spawn->spawnPoint = spawnPoint + i * pointInverval;
+
+        level->spawnsCount += 1;
+    }
+}
+
 void FillSpawnSequence(Level* level) {
+    level->spawnSequence = (EnemySpawn*) malloc(sizeof(EnemySpawn) * 16);
 
-    level->spawnsCount = 4;
-    level->spawnSequence = (EnemySpawn*) malloc(sizeof(EnemySpawn) * 4);
-
-    level->spawnSequence[0] = {1,   {-1, 5, 0}, Walker};
-    level->spawnSequence[1] = {1.4, { 1, 5, 0}, Walker};
-    level->spawnSequence[2] = {1.8, {-2, 5, 0}, Walker};
-    level->spawnSequence[3] = {2.4, { 2, 5, 0}, Walker};
+    SimpleSequence(level, 4, 1.0f, 0.4f, {0.15, 0}, { 0.2f, 0.0f}, Walker);
+    SimpleSequence(level, 4, 5.0f, 0.4f, {0.85, 0}, {-0.2f, 0.0f}, Walker);
 }

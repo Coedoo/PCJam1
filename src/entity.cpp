@@ -66,11 +66,12 @@ struct Entity {
     Vector2 collisionSize;
     u32 collisionLayer;
 
-    // Damage
+    //
+    int damage;
 };
 
 
-#define MAX_ENTITY 256
+#define MAX_ENTITY 1024
 int entityCount;
 Entity entities[MAX_ENTITY];
 
@@ -118,7 +119,7 @@ void DestroyEntity(EntityHandle handle) {
     printf("Destroing entity: [%s]\n", entities[handle.index].tag);
 }
 
-void CreateBullet(Vector3 position);
+void CreatePlayerBullet(Vector3 position);
 
 /////
 // PLAYER
@@ -132,7 +133,7 @@ void PlayerControlFunc(Entity* player) {
     player->position.y += move.y;
 
     if(IsKeyDown(KEY_SPACE)) {
-        CreateBullet(player->position);
+        CreatePlayerBullet(player->position);
     }
 }
 
@@ -162,9 +163,13 @@ EntityHandle CreatePlayerEntity(Texture2D* texture) {
 
 void BulletControlFunc(Entity* bullet) {
     bullet->position.y += playerBulletSpeed * GetFrameTime();
+
+    if(bullet->position.y >= cameraBounds.max.y) {
+        DestroyEntity(bullet->handle);
+    }
 }
 
-void CreateBullet(Vector3 position) {
+void CreatePlayerBullet(Vector3 position) {
     Entity* bullet = CreateEntity();
 
     bullet->tag = "Bullet";
@@ -182,6 +187,8 @@ void CreateBullet(Vector3 position) {
     bullet->collisionflags = (CollisionFlag)(ColFlag_DestroyAfterHit | ColFlag_Damage);
     bullet->collisionLayer = ColLay_PlayerBullet;
 
+    bullet->damage = playerDamage;
+
     bullet->ControlFunction = BulletControlFunc;
 }
 
@@ -196,7 +203,7 @@ enum EnemyType {
 Entity enemyPresets[EnemyType::Count];
 
 void WalkerControlFunc(Entity* entity) {
-    entity->position.y -= GetFrameTime() * 5;
+    entity->position.y -= GetFrameTime() * walkerMoveSpeed;
 }
 
 
@@ -210,8 +217,7 @@ void InitEnemyPresets() {
         e.size = 1;
         e.collisionType = AABB;
         e.collisionSize = {1, 1};
-        e.maxHP = 100;
-        e.HP = 100;
+        e.HP = walkerHP;
         e.collisionLayer = ColLay_Enemy | ColLay_PlayerBullet;
 
         e.ControlFunction = WalkerControlFunc;
