@@ -7,8 +7,11 @@ enum EntityFlag {
     Render = (1 << 0),
     Collision = (1 << 1),
     HaveHealth = (1 << 2),
-    Damaging = (1 << 3)
+    Damaging = (1 << 3),
+    LifeTime = (1 << 4),
 };
+
+/////////////
 
 enum CollisionType {
     None,
@@ -30,9 +33,15 @@ enum CollisionLayers {
     ColLay_EnemyBullet  = (1 << 3),
 };
 
+/////////////
+
 struct Entity {
     EntityHandle handle;
     bool toDestroy;
+
+    float spawnTime;
+    float lifeTime;
+
     char* tag;
 
     void (*ControlFunction)(Entity* entity);
@@ -42,7 +51,7 @@ struct Entity {
     // transform
     Vector3 position;
     float rotation;
-    Vector3 scale;
+    float size;
 
     // rendering
     Texture* texture;
@@ -86,7 +95,22 @@ Entity* CreateEntity() {
     EntityHandle handle = CreateEntityHandle();
     assert(handle.index != 0);
 
+    entities[handle.index].spawnTime = GetTime();
+
     return entities + handle.index;
+}
+
+EntityHandle SpawnEntity(Entity preset, Vector3 position) {
+    EntityHandle h = CreateEntityHandle();
+    assert(h.index != 0);
+
+    preset.handle = h;
+    preset.position = position;
+    preset.spawnTime = GetTime();
+
+    entities[h.index] = preset;
+
+    return h;
 }
 
 void DestroyEntity(EntityHandle handle) {
@@ -118,7 +142,7 @@ EntityHandle CreatePlayerEntity(Texture2D* texture) {
     player->tag = "Player";
 
     player->flags = (EntityFlag)(Render | Collision | HaveHealth);
-    player->scale = {1, 1, 1};
+    player->size = 1;
     player->texture = texture;
 
     player->collisionType = AABB;
@@ -146,9 +170,11 @@ void CreateBullet(Vector3 position) {
     bullet->tag = "Bullet";
 
     bullet->position = position;
-    bullet->flags = (EntityFlag)(Render | Collision | Damaging);
-    bullet->scale = {0.2f, 0, 0};
+    bullet->flags = (EntityFlag)(Render | Collision | Damaging | LifeTime);
+    bullet->size = 0.2f;
     bullet->texture = &bulletTexture;
+
+    bullet->lifeTime = 2;
 
     bullet->collisionType = CollisionType::Circle;
     bullet->collisionSize.x = 0.1f;
@@ -157,4 +183,39 @@ void CreateBullet(Vector3 position) {
     bullet->collisionLayer = ColLay_PlayerBullet;
 
     bullet->ControlFunction = BulletControlFunc;
+}
+
+/////
+// Enemies
+/////
+enum EnemyType {
+    Walker,
+    Count,
+};
+
+Entity enemyPresets[EnemyType::Count];
+
+void WalkerControlFunc(Entity* entity) {
+    entity->position.y -= GetFrameTime() * 5;
+}
+
+
+void InitEnemyPresets() {
+    {
+        Entity e = {};
+
+        e.tag = "Walker";
+        e.flags = (Render | Collision | HaveHealth);
+        e.texture = &blankTexture;
+        e.size = 1;
+        e.collisionType = AABB;
+        e.collisionSize = {1, 1};
+        e.maxHP = 100;
+        e.HP = 100;
+        e.collisionLayer = ColLay_Enemy | ColLay_PlayerBullet;
+
+        e.ControlFunction = WalkerControlFunc;
+
+        enemyPresets[Walker] = e;
+    }
 }

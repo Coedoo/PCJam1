@@ -44,6 +44,7 @@ Texture2D blankTexture;
 
 #include "common.cpp"
 #include "entity.cpp"
+#include "level.cpp"
 
 void UpdateDrawFrame();
 
@@ -56,6 +57,8 @@ Model terrainModel;
 
 int resLoc;
 Shader skyboxShader;
+
+Level level;
 
 template<typename T>
 T max(T a, T b) {
@@ -134,11 +137,11 @@ int main()
     InitWindow(1700, 900, "Template");
 
     // Setup camera
-    camera.position = Vector3{ 0.0f, 1.0f, 4.0f };
-    camera.target =  camera.position +  Vector3{0, 0, -1};
-    camera.up = Vector3{ 0.0f, 1.0f, 0.0f };
-
-    camera.fovy = 60.0f;
+    camera.position = Vector3{ 0.0f, 2.0f, 4.0f };
+    camera.fovy = 90.0f;
+    
+    camera.target   =  camera.position +  Vector3{0, 0, -1};
+    camera.up       = Vector3{ 0.0f, 1.0f, 0.0f };
     camera.projection = CAMERA_PERSPECTIVE;
 
     ///////////
@@ -150,16 +153,16 @@ int main()
     //////
     CreatePlayerEntity(&theoTexture);
 
-    Entity* blank = CreateEntity();
-    blank->flags = (Render | Collision | HaveHealth);
-    blank->texture = &blankTexture;
-    blank->position.y = 2;
-    blank->scale = {1, 1, 1};
-    blank->collisionType = AABB;
-    blank->collisionSize = {1, 1};
-    blank->maxHP = 100;
-    blank->HP = 100;
-    blank->collisionLayer = ColLay_Enemy | ColLay_PlayerBullet;
+    // Entity* blank = CreateEntity();
+    // blank->flags = (Render | Collision | HaveHealth);
+    // blank->texture = &blankTexture;
+    // blank->position.y = 2;
+    // blank->scale = {1, 1, 1};
+    // blank->collisionType = AABB;
+    // blank->collisionSize = {1, 1};
+    // blank->maxHP = 100;
+    // blank->HP = 100;
+    // blank->collisionLayer = ColLay_Enemy | ColLay_PlayerBullet;
 
     terrainModel = LoadModelFromMesh(CreateTerrainMesh());
 
@@ -170,7 +173,18 @@ int main()
     skyboxShader = LoadShader(0, "assets/shaders/skybox.frag");
     resLoc = GetShaderLocation(skyboxShader, "resolution");
 
+    InitEnemyPresets();
+
+    FillSpawnSequence(&level);
+
     muiInit(&muCtx);
+
+    //////////////////////////
+    
+    rlDisableDepthTest();
+    rlDisableDepthMask();
+
+    /////////////////////////
 
 #if WEB_BUILD
     emscripten_set_main_loop(UpdateDrawFrame, 0, 1);
@@ -191,6 +205,18 @@ void UpdateDrawFrame()
     mu_begin(&muCtx);
 
     if(showDebug == false) {
+        if(IsKeyPressed(KEY_S)) {
+            StartLevel(&level);
+        }
+        /////
+        // Level Update
+        ////
+        SpawnSequence(level);
+
+        /////
+        // Entity Update
+        ////
+
         for(int i = 0; i < MAX_ENTITY; i++) {
             Entity* e = entities + i;
 
@@ -202,11 +228,14 @@ void UpdateDrawFrame()
                 e->ControlFunction(entities + i);
             }
 
-
-
             u32 f = e->flags;
-            if(f&HaveHealth) {
+            if(f & HaveHealth) {
                 if(e->HP <= 0) {
+                    DestroyEntity(e->handle);
+                }
+            }
+            else if(f & LifeTime) {
+                if(e->spawnTime + e->lifeTime <= GetTime()) {
                     DestroyEntity(e->handle);
                 }
             }
@@ -344,7 +373,7 @@ void UpdateDrawFrame()
 
         float t = (float) GetTime();
         SetShaderValue(shader, timeLoc, &t, RL_SHADER_UNIFORM_FLOAT);
-        DrawModel(terrainModel, {0, -2, -terrainResolution / 2}, 1.0f, WHITE);
+        DrawModel(terrainModel, {0, -2, -terrainResolution / 2}, 4.0f, WHITE);
 
         /// Render Entities
         for(int i = 0; i < MAX_ENTITY; i++) {
@@ -352,7 +381,7 @@ void UpdateDrawFrame()
             if(e->flags & Render) {
                 assert(e->texture);
 
-                DrawBillboard(camera, *e->texture, e->position, e->scale.x, WHITE);
+                DrawBillboard(camera, *e->texture, e->position, e->size, WHITE);
             }
         }
 
