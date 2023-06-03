@@ -88,9 +88,9 @@ void main() {
 
     float x = 2*abs(uv.x - 0.5f);
     float center = x * x;
-    center = smoothstep(0.3, 0.5, center);
+    center = smoothstep(0.3, 0.4, center);
 
     vec4 pos = vec4(aPos, 1.0);
-    pos.y += 10 * (snoise(vec2(pos.x, pos.z) * 0.1f) * 0.5f + 0.5f) * center;
+    pos.y += 5 * (snoise(vec2(pos.x, pos.z) * 3f) * 0.5f + 0.5f) * center;
     gl_Position = mvp * pos;
 }

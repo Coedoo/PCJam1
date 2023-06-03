@@ -1,8 +1,17 @@
-
 const int TempArenaSize = 4 * 1024 * 1024;
 
+const int windowWidth = 1700;
+const int windowHeight = 900;
 
-const int terrainResolution = 50;
+////
+// Title Screen
+///
+
+const Vector2 logoFinalPosition = {windowWidth / 2.0f, windowHeight * 0.75f};
+const float titleAnimationTime = 20;
+
+const int terrainResX = 30;
+const int terrainResY = 150;
 
 ///
 /// Player

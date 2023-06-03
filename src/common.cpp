@@ -120,17 +120,14 @@ int RandomRange(int a, int b) {
     return (int) (Lerp((float)a, (float)b, p) + 0.5f);
 }
 
+///////
 
-///////////////
+template<typename T>
+T max(T a, T b) {
+    return a > b ? a : b;
+}
 
-Vector2 GetMovementInput() {
-    Vector2 input = {};
-
-    if(IsKeyDown(KEY_LEFT))       input.x = -1;
-    else if(IsKeyDown(KEY_RIGHT)) input.x =  1;
-
-    if(IsKeyDown(KEY_UP))        input.y =  1;
-    else if(IsKeyDown(KEY_DOWN)) input.y = -1;
-
-    return input;
+template<typename T>
+T min(T a, T b) {
+    return a < b ? a : b;
 }

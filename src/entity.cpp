@@ -119,11 +119,36 @@ void DestroyEntity(EntityHandle handle) {
     printf("Destroing entity: [%s]\n", entities[handle.index].tag);
 }
 
-void CreatePlayerBullet(Vector3 position);
+Vector2 GetMovementInput() {
+    Vector2 input = {};
+
+    if(IsKeyDown(KEY_LEFT))       input.x = -1;
+    else if(IsKeyDown(KEY_RIGHT)) input.x =  1;
+
+    if(IsKeyDown(KEY_UP))        input.y =  1;
+    else if(IsKeyDown(KEY_DOWN)) input.y = -1;
+
+    return input;
+}
+
+
+///
+BoundingBox GetEntityBounds(Entity* entity) {
+    BoundingBox ret = {};
+
+    ret.min.x = entity->position.x - entity->collisionSize.x / 2.0f;
+    ret.max.x = entity->position.x + entity->collisionSize.x / 2.0f;
+    ret.min.y = entity->position.y - entity->collisionSize.y / 2.0f;
+    ret.max.y = entity->position.y + entity->collisionSize.y / 2.0f;
+
+    return ret;
+}
 
 /////
 // PLAYER
 /////
+
+void CreatePlayerBullet(Vector3 position);
 
 void PlayerControlFunc(Entity* player) {
     Vector2 input = GetMovementInput();
@@ -131,6 +156,9 @@ void PlayerControlFunc(Entity* player) {
     Vector2 move = input * playerSpeed * GetFrameTime();
     player->position.x += move.x;
     player->position.y += move.y;
+
+    player->position.x = Clamp(player->position.x, cameraBounds.min.x, cameraBounds.max.x);
+    player->position.y = Clamp(player->position.y, cameraBounds.min.y, cameraBounds.max.y);
 
     if(IsKeyDown(KEY_SPACE)) {
         CreatePlayerBullet(player->position);
@@ -214,9 +242,9 @@ void InitEnemyPresets() {
         e.tag = "Walker";
         e.flags = (Render | Collision | HaveHealth);
         e.texture = &blankTexture;
-        e.size = 1;
+        e.size = 0.5f;
         e.collisionType = AABB;
-        e.collisionSize = {1, 1};
+        e.collisionSize = {0.5f, 0.5f};
         e.HP = walkerHP;
         e.collisionLayer = ColLay_Enemy | ColLay_PlayerBullet;
 

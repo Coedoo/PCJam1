@@ -50,6 +50,7 @@ BoundingBox cameraBounds;
 #include "config.h"
 
 #include "common.cpp"
+#include "title_screen.cpp"
 #include "entity.cpp"
 #include "level.cpp"
 
@@ -64,17 +65,10 @@ Model terrainModel;
 int resLoc;
 Shader skyboxShader;
 
+TitleScreen titleScreen;
 Level level;
 
-template<typename T>
-T max(T a, T b) {
-    return a > b ? a : b;
-}
-
-template<typename T>
-T min(T a, T b) {
-    return a < b ? a : b;
-}
+bool isInTitleScreen;
 
 void DebugWindow() {
     if(mu_begin_window(&muCtx, "Debug", mu_rect(0, 0, 200, 150))) {
@@ -94,44 +88,44 @@ void DebugWindow() {
 // //// terrain mesh
 Mesh CreateTerrainMesh() {
     Mesh mesh = {};
-    int vertsCount     = terrainResolution * terrainResolution;
-    int trianglesCount = (terrainResolution - 1) * (terrainResolution - 1) * 6;
+    int vertsCount     = terrainResX * terrainResY;
+    int trianglesCount = (terrainResX - 1) * (terrainResY - 1) * 6;
 
     mesh.vertexCount = vertsCount;
-    mesh.triangleCount = (terrainResolution - 1) * (terrainResolution - 1) * 2;
+    mesh.triangleCount = (terrainResX - 1) * (terrainResY - 1) * 2;
 
     mesh.vertices   = (float*) arena_alloc(&tempArena, vertsCount * sizeof(float) * 3);
     mesh.texcoords  = (float*) arena_alloc(&tempArena, vertsCount * sizeof(float) * 2);
     mesh.texcoords2 = (float*) arena_alloc(&tempArena, vertsCount * sizeof(float) * 2);
     mesh.indices    = (unsigned short*) arena_alloc(&tempArena, trianglesCount * sizeof(unsigned short));
 
-    float offset = terrainResolution / 2.0f - 0.5f;
+    float offset = terrainResX / 2.0f - 0.5f;
 
     Vector3* verts = (Vector3*)mesh.vertices; 
     Vector2* uvs = (Vector2*)mesh.texcoords;
     Vector2* uvs2 = (Vector2*)mesh.texcoords2;
 
-    for(int y = 0; y < terrainResolution; y++) {
-        for(int x = 0; x < terrainResolution; x++) {
-            int idx = x + y * terrainResolution;
+    for(int y = 0; y < terrainResY; y++) {
+        for(int x = 0; x < terrainResX; x++) {
+            int idx = x + y * terrainResX;
             verts[idx] = {(float) x - offset, 0, (float) y - offset};
-            uvs[idx] = {(float)x / (terrainResolution - 1), (float) y / (terrainResolution - 1)};
+            uvs[idx] = {(float)x / (terrainResX - 1), (float) y / (terrainResY - 1)};
             uvs2[idx] = {(float)(x%2) , (float)(y%2)};
         }
     }
 
     int index = 0;
-    for (int y = 0; y < terrainResolution - 1; y++) {
-        for (int x = 0; x < terrainResolution - 1; x++) {
-            int idx = x + y * terrainResolution;
+    for (int y = 0; y < terrainResY - 1; y++) {
+        for (int x = 0; x < terrainResX - 1; x++) {
+            int idx = x + y * terrainResX;
 
             mesh.indices[index++] = idx;
-            mesh.indices[index++] = idx + terrainResolution + 1;
+            mesh.indices[index++] = idx + terrainResX + 1;
             mesh.indices[index++] = idx + 1;
 
             mesh.indices[index++] = idx;
-            mesh.indices[index++] = idx + terrainResolution;
-            mesh.indices[index++] = idx + terrainResolution + 1;
+            mesh.indices[index++] = idx + terrainResX;
+            mesh.indices[index++] = idx + terrainResX + 1;
         }
     }
 
@@ -142,13 +136,24 @@ Mesh CreateTerrainMesh() {
 
 int main()
 {
-    InitWindow(1700, 900, "Template");
+    InitWindow(windowWidth, windowHeight, "Template");
 
     void* tempArenaBuffer = malloc(TempArenaSize);
     arena_init(&tempArena, tempArenaBuffer, TempArenaSize);
+    ////////
+    
+    InitAudioDevice();
+    SetMasterVolume(1);
+
+    ////////
+
+    titleScreen = CreateTitleScreen();
+    StartTitleScreenAnim(&titleScreen);
+    isInTitleScreen = true;
+    ////
 
     // Setup camera
-    camera.position = Vector3{ 0.0f, 2.0f, 3.4f };
+    camera.position = Vector3{ 0.0f, 0.0f, 3.4f };
     camera.fovy = 90.0f;
     
     camera.target   =  camera.position +  Vector3{0, 0, -1};
@@ -170,7 +175,7 @@ int main()
     blankTexture = LoadTexture("assets/blank.png");
 
     //////
-    CreatePlayerEntity(&theoTexture);
+    // CreatePlayerEntity(&theoTexture);
 
     // Entity* blank = CreateEntity();
     // blank->flags = (Render | Collision | HaveHealth);
@@ -394,7 +399,7 @@ void UpdateDrawFrame()
 
         float t = (float) GetTime();
         SetShaderValue(shader, timeLoc, &t, RL_SHADER_UNIFORM_FLOAT);
-        DrawModel(terrainModel, {0, -2, -terrainResolution / 2}, 4.0f, WHITE);
+        DrawModel(terrainModel, {0, -15, -terrainResY * 2 + 4}, 8.0f, WHITE);
 
         /// Render Entities
         for(int i = 0; i < MAX_ENTITY; i++) {
