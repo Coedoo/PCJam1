@@ -44,6 +44,8 @@ Arena tempArena;
 Texture2D bulletTexture;
 Texture2D blankTexture;
 
+Texture atlas;
+
 Camera camera;
 BoundingBox cameraBounds;
 
@@ -178,9 +180,10 @@ int main()
     Texture2D theoTexture = LoadTexture("assets/theo_1.png");
     bulletTexture = LoadTexture("assets/theo_1.png");
     blankTexture = LoadTexture("assets/blank.png");
+    atlas = LoadTexture("assets/atlas.png");
 
     //////
-    CreatePlayerEntity(theoTexture);
+    CreatePlayerEntity();
 
     // Entity* blank = CreateEntity();
     // blank->flags = (Render | Collision | HaveHealth);
@@ -270,10 +273,15 @@ void UpdateDrawFrame()
                     DestroyEntity(e->handle);
                 }
             }
-            else if(f & LifeTime) {
+            
+            if(f & LifeTime) {
                 if(e->spawnTime + e->lifeTime <= GetTime()) {
                     DestroyEntity(e->handle);
                 }
+            }
+            
+            if(f & SpriteAnim) {
+                UpdateAnimFrame(&e->sprite, (float)GetTime() - e->spawnTime);
             }
         }
 
@@ -407,9 +415,6 @@ void UpdateDrawFrame()
 
     BeginMode3D(camera);
     {
-        // DrawGrid(15, 15);
-        // DrawCube({0,0,0}, 1, 1, 1, RED);
-
         float t = (float) GetTime();
         SetShaderValue(skyboxShader, timeLoc, &t, RL_SHADER_UNIFORM_FLOAT);
 
@@ -420,7 +425,8 @@ void UpdateDrawFrame()
         for(int i = 0; i < MAX_ENTITY; i++) {
             Entity* e = entities + i;
             if(e->flags & Render) {
-                DrawBillboardRec(camera, e->sprite.texture, e->sprite.textureRect, e->position, {e->size, e->size}, WHITE);
+                DrawBillboardRec(camera, e->sprite.texture, e->sprite.currentTexRect, 
+                                 e->position, {e->size, e->size}, WHITE);
             }
         }
 
@@ -449,7 +455,6 @@ void UpdateDrawFrame()
         DrawTextureRec(renderTexture.texture, { 0, 0, (float)renderTexture.texture.width, (float)-renderTexture.texture.height }, { 0, 0 }, WHITE);
     // EndShaderMode();
 
-        UpdateAndDrawTitleScreen(&titleScreen);
         muiRender(&muCtx);
     EndDrawing();
 

@@ -166,14 +166,17 @@ void PlayerControlFunc(Entity* player) {
     }
 }
 
-EntityHandle CreatePlayerEntity(Texture2D texture) {
+EntityHandle CreatePlayerEntity() {
     Entity* player = CreateEntity();
 
     player->tag = "Player";
 
-    player->flags = (EntityFlag)(Render | Collision | HaveHealth);
+    player->flags = (EntityFlag)(Render | Collision | HaveHealth | SpriteAnim);
     player->size = 1;
-    player->sprite = CreateSprite(texture);
+    player->sprite = CreateSprite(atlas, {64, 0, 3 * 32, 2 * 32});
+    player->sprite.animationFrames = 2;
+    player->sprite.frameTime = 0.2f;
+    player->sprite.animDir = Vertical;
 
     player->collisionType = AABB;
     player->collisionSize = {1, 1};
@@ -206,7 +209,7 @@ void CreatePlayerBullet(Vector3 position) {
     bullet->position = position;
     bullet->flags = (EntityFlag)(Render | Collision | Damaging | LifeTime);
     bullet->size = 0.2f;
-    bullet->sprite = CreateSprite(bulletTexture);
+    bullet->sprite = CreateSprite(atlas, {0, 0, 32, 32});
 
     bullet->lifeTime = 2;
 
