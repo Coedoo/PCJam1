@@ -43,6 +43,7 @@ void UpdateTitleScreen(TitleScreen* title) {
 
 }
 
+void DrawTextCentered(char* text, Vector2 position, float fontSize, float spacing);
 void DrawTitleScreen(TitleScreen* title) {
     float p = title->time / titleAnimationTime;
 
@@ -52,4 +53,11 @@ void DrawTitleScreen(TitleScreen* title) {
 
     Vector2 pos = Vector2Lerp(startPos, endPos, p);
     DrawTextureV(title->logo, pos, WHITE);
+
+    if(title->time > titleAnimationTime) {
+        char* text = "Controls:\nARROWS - move\nSPACE - shoot\nPress SPACEBAR to play";
+
+        pos = {windowWidth / 2.0f, windowHeight / 2.0f + 230};
+        DrawTextCentered(text, pos, 35, 2);
+    }
 }

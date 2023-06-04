@@ -169,6 +169,8 @@ void GoToTitleScreen() {
     gameState.state = Title;
     gameState.stateSwitchTime = (float) GetTime();
 
+    gameState.gameStartTime = gameState.stateSwitchTime;
+
     ClearAllEntities();
 
     StartTitleScreenAnim(&titleScreen);
@@ -539,7 +541,7 @@ void UpdateDrawFrame()
     EndShaderMode();
     
     BeginMode3D(camera);
-        t = (float)GetTime() - gameState.stateSwitchTime;
+        t = (float)GetTime() - gameState.gameStartTime;
         for(int i = 0; i < 1; i++) {
             DrawModel(terrainModel, {0, -15, -terrainResY*8*(i+1) + t * 9}, 8.0f, WHITE);
         }

@@ -66,6 +66,8 @@ struct GameState {
     State state;
     float stateSwitchTime;
 
+    float gameStartTime;
+
     EntityHandle playerHandle;
 
     int currentPlayerLifes;
