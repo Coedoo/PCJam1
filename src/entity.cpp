@@ -9,6 +9,7 @@ enum EntityFlag {
     HaveHealth = (1 << 2),
     Damaging = (1 << 3),
     LifeTime = (1 << 4),
+    SpriteAnim = (1 << 5),
 };
 
 /////////////
@@ -54,7 +55,7 @@ struct Entity {
     float size;
 
     // rendering
-    Texture* texture;
+    Sprite sprite;
 
     //
     int maxHP;
@@ -96,7 +97,7 @@ Entity* CreateEntity() {
     EntityHandle handle = CreateEntityHandle();
     assert(handle.index != 0);
 
-    entities[handle.index].spawnTime = GetTime();
+    entities[handle.index].spawnTime = (float) GetTime();
 
     return entities + handle.index;
 }
@@ -107,7 +108,7 @@ EntityHandle SpawnEntity(Entity preset, Vector3 position) {
 
     preset.handle = h;
     preset.position = position;
-    preset.spawnTime = GetTime();
+    preset.spawnTime = (float) GetTime();
 
     entities[h.index] = preset;
 
@@ -165,14 +166,14 @@ void PlayerControlFunc(Entity* player) {
     }
 }
 
-EntityHandle CreatePlayerEntity(Texture2D* texture) {
+EntityHandle CreatePlayerEntity(Texture2D texture) {
     Entity* player = CreateEntity();
 
     player->tag = "Player";
 
     player->flags = (EntityFlag)(Render | Collision | HaveHealth);
     player->size = 1;
-    player->texture = texture;
+    player->sprite = CreateSprite(texture);
 
     player->collisionType = AABB;
     player->collisionSize = {1, 1};
@@ -205,7 +206,7 @@ void CreatePlayerBullet(Vector3 position) {
     bullet->position = position;
     bullet->flags = (EntityFlag)(Render | Collision | Damaging | LifeTime);
     bullet->size = 0.2f;
-    bullet->texture = &bulletTexture;
+    bullet->sprite = CreateSprite(bulletTexture);
 
     bullet->lifeTime = 2;
 
@@ -241,7 +242,7 @@ void InitEnemyPresets() {
 
         e.tag = "Walker";
         e.flags = (Render | Collision | HaveHealth);
-        e.texture = &blankTexture;
+        e.sprite = CreateSprite(blankTexture);
         e.size = 0.5f;
         e.collisionType = AABB;
         e.collisionSize = {0.5f, 0.5f};

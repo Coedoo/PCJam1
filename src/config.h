@@ -10,7 +10,7 @@ const int windowHeight = 900;
 const Vector2 logoFinalPosition = {windowWidth / 2.0f, windowHeight * 0.75f};
 const float titleAnimationTime = 20;
 
-const int terrainResX = 30;
+const int terrainResX = 20;
 const int terrainResY = 150;
 
 ///

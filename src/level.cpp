@@ -45,14 +45,14 @@ void SpawnSequence(Level level) {
 }
 
 
-void SimpleSequence(Level* level, int count, double time, float timeInterval, Vector2 spawnPoint, Vector2 pointInverval, EnemyType enemyType) {
+void SimpleSequence(Level* level, int count, float time, float timeInterval, Vector2 spawnPoint, Vector2 pointInverval, EnemyType enemyType) {
 
     for(int i = 0; i < count; i++) {
         EnemySpawn* spawn = level->spawnSequence + level->spawnsCount;
 
         spawn->enemyType = enemyType;
         spawn->spawnTime = time + i * timeInterval;
-        spawn->spawnPoint = spawnPoint + i * pointInverval;
+        spawn->spawnPoint = spawnPoint + (float)i * pointInverval;
 
         level->spawnsCount += 1;
     }
@@ -61,6 +61,6 @@ void SimpleSequence(Level* level, int count, double time, float timeInterval, Ve
 void FillSpawnSequence(Level* level) {
     level->spawnSequence = (EnemySpawn*) malloc(sizeof(EnemySpawn) * 16);
 
-    SimpleSequence(level, 4, 1.0f, 0.4f, {0.15, 0}, { 0.2f, 0.0f}, Walker);
-    SimpleSequence(level, 4, 5.0f, 0.4f, {0.85, 0}, {-0.2f, 0.0f}, Walker);
+    SimpleSequence(level, 4, 1.0f, 0.4f, {0.15f, 0}, { 0.2f, 0.0f}, Walker);
+    SimpleSequence(level, 4, 5.0f, 0.4f, {0.85f, 0}, {-0.2f, 0.0f}, Walker);
 }

@@ -52,6 +52,7 @@ Shader bloomShader;
 #include "config.h"
 
 #include "common.cpp"
+#include "sprite.cpp"
 #include "title_screen.cpp"
 #include "entity.cpp"
 #include "level.cpp"
@@ -179,7 +180,7 @@ int main()
     blankTexture = LoadTexture("assets/blank.png");
 
     //////
-    // CreatePlayerEntity(&theoTexture);
+    CreatePlayerEntity(theoTexture);
 
     // Entity* blank = CreateEntity();
     // blank->flags = (Render | Collision | HaveHealth);
@@ -419,9 +420,7 @@ void UpdateDrawFrame()
         for(int i = 0; i < MAX_ENTITY; i++) {
             Entity* e = entities + i;
             if(e->flags & Render) {
-                assert(e->texture);
-
-                DrawBillboard(camera, *e->texture, e->position, e->size, WHITE);
+                DrawBillboardRec(camera, e->sprite.texture, e->sprite.textureRect, e->position, {e->size, e->size}, WHITE);
             }
         }
 
@@ -444,11 +443,11 @@ void UpdateDrawFrame()
     EndMode3D();
     EndTextureMode();
 
-    BeginDrawing();
-    BeginShaderMode(bloomShader);
+    BeginDrawing(); 
+    // BeginShaderMode(bloomShader);
     
         DrawTextureRec(renderTexture.texture, { 0, 0, (float)renderTexture.texture.width, (float)-renderTexture.texture.height }, { 0, 0 }, WHITE);
-    EndShaderMode();
+    // EndShaderMode();
 
         UpdateAndDrawTitleScreen(&titleScreen);
         muiRender(&muCtx);
