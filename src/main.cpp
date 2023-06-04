@@ -41,15 +41,13 @@ struct Str8 {
 
 Arena tempArena;
 
-Texture2D bulletTexture;
-Texture2D blankTexture;
-
 Texture atlas;
 
 Camera camera;
 BoundingBox cameraBounds;
 
 Shader bloomShader;
+Sound scream;
 
 struct EntityHandle {
     u32 generation;
@@ -57,6 +55,10 @@ struct EntityHandle {
 };
 
 #include "config.h"
+
+void GoToTitleScreen();
+void GoToGame();
+void GotToScoreScreen();
 
 #include "common.cpp"
 #include "sprite.cpp"
@@ -78,7 +80,6 @@ Shader skyboxShader;
 TitleScreen titleScreen;
 Level level;
 
-bool isInTitleScreen;
 
 RenderTexture2D renderTexture;
 
@@ -146,6 +147,22 @@ Mesh CreateTerrainMesh() {
     return mesh;
 }
 
+void GoToTitleScreen() {
+    gameState.state = Title;
+}
+
+void GoToGame() {
+    gameState.state = Game;
+    gameState.currentPlayerLifes = playerLifes;
+
+    StartLevel(&level);
+}
+
+void GotToScoreScreen() {
+    gameState.state = GameOver;
+}
+
+
 int main()
 {
     InitWindow(windowWidth, windowHeight, "Template");
@@ -161,15 +178,14 @@ int main()
 
     titleScreen = CreateTitleScreen();
     StartTitleScreenAnim(&titleScreen);
-    isInTitleScreen = true;
     ////
 
     // Setup camera
     camera.position = Vector3{ 0.0f, 0.0f, 3.4f };
     camera.fovy = 90.0f;
     
-    camera.target   =  camera.position +  Vector3{0, 0, -1};
-    camera.up       = Vector3{ 0.0f, 1.0f, 0.0f };
+    camera.target     = camera.position +  Vector3{0, 0, -1};
+    camera.up         = Vector3{ 0.0f, 1.0f, 0.0f };
     camera.projection = CAMERA_PERSPECTIVE;
 
     Ray botLeft  = GetMouseRay({0, (float)GetScreenHeight()}, camera);
@@ -181,28 +197,11 @@ int main()
     cameraBounds.min = min.point;
     cameraBounds.max = max.point;
     ///////////
-    
-    Texture2D theoTexture = LoadTexture("assets/theo_1.png");
-    bulletTexture = LoadTexture("assets/theo_1.png");
-    blankTexture = LoadTexture("assets/blank.png");
+
     atlas = LoadTexture("assets/atlas.png");
 
     //////
-    // CreatePlayerEntity();
-
-    // Entity* blank = CreateEntity();
-    // blank->flags = (Render | Collision | HaveHealth);
-    // blank->texture = &blankTexture;
-    // blank->position.y = 2;
-    // blank->scale = {1, 1, 1};
-    // blank->collisionType = AABB;
-    // blank->collisionSize = {1, 1};
-    // blank->maxHP = 100;
-    // blank->HP = 100;
-    // blank->collisionLayer = ColLay_Enemy | ColLay_PlayerBullet;
-
     terrainModel = LoadModelFromMesh(CreateTerrainMesh());
-
     terrainShader = LoadShader("assets/shaders/terrain.vert", "assets/shaders/terrain.frag");
     // timeLoc = GetShaderLocation(terrainShader, "time");
     terrainModel.materials[0].shader = terrainShader;
@@ -213,8 +212,13 @@ int main()
 
     bloomShader = LoadShader(0, "assets/shaders/bloom.frag");
 
-    InitEnemyPresets();
+    /////////////////
 
+    scream = LoadSound("assets/scream0.wav");
+
+    ////////////////
+
+    InitEnemyPresets();
     FillSpawnSequence(&level);
 
     renderTexture = LoadRenderTexture(windowWidth, windowHeight);
@@ -253,14 +257,22 @@ void UpdateDrawFrame()
             StartLevel(&level);
         }
 
-
         /////
         // Level Update
         ////
-        if(IsValidHandle(gameState.playerHandle) == false) {
-            gameState.playerHandle = CreatePlayerEntity();
+
+        if(gameState.state == Title) {
+            UpdateTitleScreen(&titleScreen);
         }
-        SpawnSequence(level);
+        else if(gameState.state == Game)
+        {
+            if(IsValidHandle(gameState.playerHandle) == false) {
+                gameState.playerHandle = CreatePlayerEntity();
+            }
+
+            SpawnSequence(level);
+        }
+
 
         /////
         // Entity Update
@@ -472,11 +484,19 @@ void UpdateDrawFrame()
 
     BeginDrawing(); 
     // BeginShaderMode(bloomShader);
+
     
         DrawTextureRec(renderTexture.texture, { 0, 0, (float)renderTexture.texture.width, (float)-renderTexture.texture.height }, { 0, 0 }, WHITE);
     // EndShaderMode();
 
-        muiRender(&muCtx);
+    if(gameState.state == Title) {
+        DrawTitleScreen(&titleScreen);
+    }
+    else if(gameState.state == Game) {
+        DrawLevelUI();
+    }
+
+    muiRender(&muCtx);
     EndDrawing();
 
 

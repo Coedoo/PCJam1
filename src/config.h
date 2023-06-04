@@ -24,6 +24,8 @@ const float playerBulletSpeed = 15;
 const float spawnAnimationTime = 1.5;
 const float invicibilityTime = spawnAnimationTime + 3;
 
+const int playerLifes = 3;
+
 ///////
 // Enemies
 /////
@@ -37,9 +39,19 @@ bool showDebug;
 int controlCamera;
 int drawCollisionShapes;
 
-struct GameState {
-    EntityHandle playerHandle;
+///////////
 
+enum State {
+    Title,
+    Game,
+    GameOver,
+};
+
+struct GameState {
+    State state;
+    EntityHandle playerHandle;
+    int currentPlayerLifes;
+    int score;
 };
 
 GameState gameState;

@@ -64,3 +64,17 @@ void FillSpawnSequence(Level* level) {
     SimpleSequence(level, 4, 1.0f, 0.4f, {0.15f, 0}, { 0.2f, 0.0f}, Walker);
     SimpleSequence(level, 4, 5.0f, 0.4f, {0.85f, 0}, {-0.2f, 0.0f}, Walker);
 }
+
+
+void DrawLevelUI() {
+    char* temp = (char*) arena_alloc(&tempArena, 1024);
+
+    sprintf(temp, "Lifes: %d", gameState.currentPlayerLifes);
+    DrawText(temp, 0, 0, 40, WHITE);
+    sprintf(temp, "Score: %d", gameState.score);
+    DrawText(temp, 0, 45, 40, WHITE);
+}
+
+void DrawGameOverUI() {
+    char* gameOverText = "GAME OVER";
+}

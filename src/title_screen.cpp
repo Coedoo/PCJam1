@@ -28,19 +28,28 @@ void StartTitleScreenAnim(TitleScreen* title) {
     PlayMusicStream(title->music);
 }
 
-void UpdateAndDrawTitleScreen(TitleScreen* title) {
+void UpdateTitleScreen(TitleScreen* title) {
     title->time += GetFrameTime();
+    UpdateMusicStream(title->music);
 
+    if(IsKeyPressed(KEY_SPACE)) {
+        if(title->time < titleAnimationTime) {
+            title->time = titleAnimationTime;
+        }
+        else {
+            GoToGame();
+        }
+    }
+
+}
+
+void DrawTitleScreen(TitleScreen* title) {
     float p = title->time / titleAnimationTime;
 
     p = min(1.0f, p);
     Vector2 startPos = {windowWidth / 2.0f - title->logo.width / 2.0f, (float) -title->logo.height};
     Vector2 endPos   = {windowWidth / 2.0f - title->logo.width / 2.0f, windowHeight / 4.0f};
-    
+
     Vector2 pos = Vector2Lerp(startPos, endPos, p);
-
     DrawTextureV(title->logo, pos, WHITE);
-
-    UpdateMusicStream(title->music);
-
 }

@@ -62,6 +62,7 @@ struct Entity {
 
     //
     int HP;
+    void (*DestroyCallback)(Entity* entity);
 
     // collision
     CollisionType collisionType;
@@ -129,7 +130,14 @@ EntityHandle SpawnEntity(Entity preset, Vector3 position) {
 }
 
 void DestroyEntity(EntityHandle handle) {
-    entities[handle.index].toDestroy = true; 
+    assert(IsValidHandle(handle));
+
+    Entity* e = entities + handle.index;
+    if(e->DestroyCallback) {
+        e->DestroyCallback(e);
+    }
+
+    entities[handle.index].toDestroy = true;
     printf("Destroing entity: [%s]\n", entities[handle.index].tag);
 }
 
@@ -197,6 +205,11 @@ void PlayerControlFunc(Entity* player) {
     }
 }
 
+void PlayerDestroyCallback(Entity* player) {
+    gameState.currentPlayerLifes -= 1;
+    PlaySound(scream);
+}
+
 EntityHandle CreatePlayerEntity() {
     Entity* player = CreateEntity();
 
@@ -218,6 +231,7 @@ EntityHandle CreatePlayerEntity() {
     player->HP = 1;
 
     player->ControlFunction = PlayerControlFunc;
+    player->DestroyCallback = PlayerDestroyCallback;
 
     return player->handle;
 }
@@ -277,7 +291,7 @@ void InitEnemyPresets() {
 
         e.tag = "Walker";
         e.flags = (Render | Collision | HaveHealth);
-        e.sprite = CreateSprite(blankTexture);
+        e.sprite = CreateSprite(atlas, {0, 32, 32, 32});
         e.size = 0.5f;
         e.collisionType = AABB;
         e.collisionSize = {0.5f, 0.5f};
