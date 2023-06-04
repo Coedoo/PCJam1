@@ -26,7 +26,7 @@ const float invicibilityTime = spawnAnimationTime + 0;
 
 const int playerLifes = 3;
 
-const float playerFireInterval = 0.05f;
+const float playerFireInterval = 0.1f;
 
 const float winAnim1Time = 3;
 const float winAnim2Time = 0.5f;

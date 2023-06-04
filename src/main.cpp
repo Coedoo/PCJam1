@@ -47,7 +47,6 @@ Camera camera;
 BoundingBox cameraBounds;
 
 Shader bloomShader;
-Sound scream;
 
 struct EntityHandle {
     u32 generation;
@@ -61,6 +60,7 @@ void GoToGame();
 void GoToGameOver();
 void GoToGameWon();
 
+#include "audio.cpp"
 #include "easings.cpp"
 #include "common.cpp"
 #include "sprite.cpp"
@@ -81,7 +81,6 @@ Shader skyboxShader;
 
 TitleScreen titleScreen;
 Level level;
-
 
 RenderTexture2D renderTexture;
 
@@ -243,7 +242,7 @@ int main()
 
     /////////////////
 
-    scream = LoadSound("assets/scream0.wav");
+    LoadAudioLib();
 
     ////////////////
 
@@ -317,13 +316,13 @@ void UpdateDrawFrame()
             u32 f = e->flags;
             if(f & HaveHealth) {
                 if(e->HP <= 0) {
-                    DestroyEntity(e->handle);
+                    DestroyEntity(e->handle, LowHP);
                 }
             }
             
             if(f & LifeTime) {
                 if(e->spawnTime + e->lifeTime <= GetTime()) {
-                    DestroyEntity(e->handle);
+                    DestroyEntity(e->handle, LifeTimeEnded);
                 }
             }
             
@@ -348,7 +347,7 @@ void UpdateDrawFrame()
                 }
 
                 if(wasInsideCamera && e->isInsideCamera == false) {
-                    DestroyEntity(e->handle);
+                    DestroyEntity(e->handle, OutsideCamera);
                 }
             }
         }
@@ -435,7 +434,7 @@ void UpdateDrawFrame()
                         b->HP -= a->damage;
                     }
                     if(a->collisionflags & ColFlag_DestroyAfterHit) {
-                        DestroyEntity(a->handle);
+                        DestroyEntity(a->handle, AfterCollision);
                     }
 
 
@@ -443,7 +442,7 @@ void UpdateDrawFrame()
                         a->HP -= b->damage;
                     }
                     if(b->collisionflags & ColFlag_DestroyAfterHit) {
-                        DestroyEntity(b->handle);
+                        DestroyEntity(b->handle, AfterCollision);
                     }
                 }
             }

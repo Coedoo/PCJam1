@@ -37,6 +37,13 @@ u32 collisionsMasks[] = {
     ColLay_Player | ColLay_Enemy,
 };
 
+enum DestroyReason {
+    LowHP,
+    AfterCollision,
+    LifeTimeEnded,
+    OutsideCamera,
+};
+
 /////////////
 
 struct Entity {
@@ -63,7 +70,7 @@ struct Entity {
 
     //
     int HP;
-    void (*DestroyCallback)(Entity* entity);
+    void (*DestroyCallback)(Entity* entity, DestroyReason reason);
 
     // collision
     CollisionType collisionType;
@@ -134,12 +141,12 @@ EntityHandle SpawnEntity(Entity preset, Vector3 position) {
     return h;
 }
 
-void DestroyEntity(EntityHandle handle) {
+void DestroyEntity(EntityHandle handle, DestroyReason reason) {
     assert(IsValidHandle(handle));
 
     Entity* e = entities + handle.index;
     if(e->DestroyCallback) {
-        e->DestroyCallback(e);
+        e->DestroyCallback(e, reason);
     }
 
     entities[handle.index].toDestroy = true;
@@ -218,15 +225,18 @@ void PlayerControlFunc(Entity* player) {
     player->fireTimer -= GetFrameTime();
     if(IsKeyDown(KEY_SPACE)) {
         if(player->fireTimer < 0) {
+
             player->fireTimer = playerFireInterval;
             CreatePlayerBullet(player->position);
+            
+            PlaySound(audioLib[Shot1]);
         }
     }
 }
 
-void PlayerDestroyCallback(Entity* player) {
+void PlayerDestroyCallback(Entity* player, DestroyReason reason) {
     gameState.currentPlayerLifes -= 1;
-    PlaySound(scream);
+    PlaySound(audioLib[Scream0]);
 
     if(gameState.currentPlayerLifes < 0) {
         GoToGameOver();
@@ -298,8 +308,12 @@ enum EnemyType {
 
 Entity enemyPresets[EnemyType::Count];
 
-void EnemyDestroyCallback(Entity* entity) {
+void EnemyDestroyCallback(Entity* entity, DestroyReason reason) {
     gameState.enemiesCount -= 1;
+
+    if(reason == LowHP) {
+        PlaySound(audioLib[Dead1]);
+    }
 
     if(gameState.levelCompleted && gameState.enemiesCount == 0) {
         // printf("\n FINISHEEEDDD \n");
