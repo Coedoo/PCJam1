@@ -1,7 +1,3 @@
-struct EntityHandle {
-    u32 generation;
-    u32 index;
-};
 
 enum EntityFlag {
     Render = (1 << 0),
@@ -62,9 +58,9 @@ struct Entity {
 
     // rendering
     Sprite sprite;
+    Color tint;
 
     //
-    int maxHP;
     int HP;
 
     // collision
@@ -81,6 +77,16 @@ struct Entity {
 #define MAX_ENTITY 1024
 int entityCount;
 Entity entities[MAX_ENTITY];
+
+bool IsValidHandle(EntityHandle handle) {
+    if(handle.index == 0) {
+        return false;
+    }
+
+    EntityHandle stored = entities[handle.index].handle;
+
+    return stored.index != 0 && stored.generation == handle.generation;
+}
 
 EntityHandle CreateEntityHandle() {
     assert(entityCount < MAX_ENTITY);
@@ -104,6 +110,7 @@ Entity* CreateEntity() {
     assert(handle.index != 0);
 
     entities[handle.index].spawnTime = (float) GetTime();
+    entities[handle.index].tint = WHITE;
 
     return entities + handle.index;
 }
@@ -158,6 +165,24 @@ BoundingBox GetEntityBounds(Entity* entity) {
 void CreatePlayerBullet(Vector3 position);
 
 void PlayerControlFunc(Entity* player) {
+    // Spawn routine
+    float liveTime = (float) GetTime() - player->spawnTime;
+
+
+    if(liveTime > invicibilityTime) {
+        player->flags |= Collision;
+        player->tint = WHITE;
+    }
+    else {
+        player->tint = ColorLerp(WHITE, SKYBLUE, sinf(liveTime * invicibilityTime) * 0.5f + 0.5f);
+    }
+    
+    if(liveTime < spawnAnimationTime) {
+        float p = liveTime / spawnAnimationTime;
+        player->position = Vector3Lerp({0, cameraBounds.min.y}, Vector3{0, -2.5f, 0}, p);
+        return;
+    }
+
     Vector2 input = GetMovementInput();
 
     Vector2 move = input * playerSpeed * GetFrameTime();
@@ -177,7 +202,9 @@ EntityHandle CreatePlayerEntity() {
 
     player->tag = "Player";
 
-    player->flags = (EntityFlag)(Render | Collision | HaveHealth | SpriteAnim);
+    player->position = {0, cameraBounds.min.y};
+
+    player->flags = (EntityFlag)(Render | HaveHealth | SpriteAnim);
     player->size = 1;
     player->sprite = CreateSprite(atlas, {64, 0, 3 * 32, 2 * 32});
     player->sprite.animationFrames = 2;
@@ -188,8 +215,7 @@ EntityHandle CreatePlayerEntity() {
     player->collisionSize = {1, 1};
     player->collisionLayer = ColLay_Player;
 
-    player->maxHP = 100;
-    player->HP = 100;
+    player->HP = 1;
 
     player->ControlFunction = PlayerControlFunc;
 
@@ -245,7 +271,6 @@ void WalkerControlFunc(Entity* entity) {
     entity->position.y -= GetFrameTime() * walkerMoveSpeed;
 }
 
-
 void InitEnemyPresets() {
     {
         Entity e = {};
@@ -258,6 +283,9 @@ void InitEnemyPresets() {
         e.collisionSize = {0.5f, 0.5f};
         e.HP = walkerHP;
         e.collisionLayer = ColLay_Enemy;
+        e.collisionflags = ColFlag_Damage;
+        e.damage = 1;
+        e.tint = WHITE;
 
         e.ControlFunction = WalkerControlFunc;
 

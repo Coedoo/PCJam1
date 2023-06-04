@@ -136,3 +136,22 @@ T min(T a, T b) {
 ///////////////
 
 #define ARR_LEN(x) (sizeof(x) / sizeof((x)[0]))
+
+/////////////
+float fract(float a) {
+    return a - floorf(a);
+}
+
+float PingPong(float x, float length) {
+    return length - fabsf(fract((x - length) /  (2*length)) - length);
+}
+
+
+Color ColorLerp(Color a, Color b, float t) {
+    return {
+        (unsigned char)(a.r + (unsigned char)((b.r - a.r) * t)),
+        (unsigned char)(a.g + (unsigned char)((b.g - a.g) * t)),
+        (unsigned char)(a.b + (unsigned char)((b.b - a.b) * t)),
+        (unsigned char)(a.a + (unsigned char)((b.a - a.a) * t)),
+    };
+}

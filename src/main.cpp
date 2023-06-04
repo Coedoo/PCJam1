@@ -51,6 +51,11 @@ BoundingBox cameraBounds;
 
 Shader bloomShader;
 
+struct EntityHandle {
+    u32 generation;
+    u32 index;
+};
+
 #include "config.h"
 
 #include "common.cpp"
@@ -183,7 +188,7 @@ int main()
     atlas = LoadTexture("assets/atlas.png");
 
     //////
-    CreatePlayerEntity();
+    // CreatePlayerEntity();
 
     // Entity* blank = CreateEntity();
     // blank->flags = (Render | Collision | HaveHealth);
@@ -247,9 +252,14 @@ void UpdateDrawFrame()
         if(IsKeyPressed(KEY_S)) {
             StartLevel(&level);
         }
+
+
         /////
         // Level Update
         ////
+        if(IsValidHandle(gameState.playerHandle) == false) {
+            gameState.playerHandle = CreatePlayerEntity();
+        }
         SpawnSequence(level);
 
         /////
@@ -299,10 +309,6 @@ void UpdateDrawFrame()
                     continue;
                 }
 
-                if((a->collisionLayer & b->collisionLayer) == 0) {
-                    continue;
-                }
-
                 assert(a->collisionType != None && b->collisionType != None);
 
 
@@ -316,6 +322,7 @@ void UpdateDrawFrame()
                 }
 
                 if(maskMatch == false) {
+                    // printf("Collisions don't mach! [%s] and [%s]\n", a->tag, b->tag);
                     continue;
                 }
 
@@ -364,7 +371,7 @@ void UpdateDrawFrame()
 
                 if(collision) {
                     printf("Collision! [%s] and [%s]\n", a->tag, b->tag);
-                    // showDebug = true;
+
                     //@TODO: Handle collision function
                     if(a->collisionflags & ColFlag_Damage) {
                         b->HP -= a->damage;
@@ -440,7 +447,7 @@ void UpdateDrawFrame()
             Entity* e = entities + i;
             if(e->flags & Render) {
                 DrawBillboardRec(camera, e->sprite.texture, e->sprite.currentTexRect, 
-                                 e->position, {e->size, e->size}, WHITE);
+                                 e->position, {e->size, e->size}, e->tint);
             }
         }
 
