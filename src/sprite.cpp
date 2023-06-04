@@ -39,6 +39,4 @@ void UpdateAnimFrame(Sprite* sprite, float time) {
     r.y += dir.y * sprite->textureRect.height * n;
 
     sprite->currentTexRect = r;
-
-    // printf("{%d, %d, %d, %d", r.x, r.y, r.width, r.height);
 }

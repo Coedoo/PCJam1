@@ -34,6 +34,12 @@ enum CollisionLayers {
     ColLay_EnemyBullet  = (1 << 3),
 };
 
+u32 collisionsMasks[] = {
+    ColLay_PlayerBullet | ColLay_Enemy,
+    ColLay_EnemyBullet | ColLay_Player,
+    ColLay_Player | ColLay_Enemy,
+};
+
 /////////////
 
 struct Entity {
@@ -180,6 +186,7 @@ EntityHandle CreatePlayerEntity() {
 
     player->collisionType = AABB;
     player->collisionSize = {1, 1};
+    player->collisionLayer = ColLay_Player;
 
     player->maxHP = 100;
     player->HP = 100;
@@ -250,7 +257,7 @@ void InitEnemyPresets() {
         e.collisionType = AABB;
         e.collisionSize = {0.5f, 0.5f};
         e.HP = walkerHP;
-        e.collisionLayer = ColLay_Enemy | ColLay_PlayerBullet;
+        e.collisionLayer = ColLay_Enemy;
 
         e.ControlFunction = WalkerControlFunc;
 

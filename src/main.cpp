@@ -305,8 +305,22 @@ void UpdateDrawFrame()
 
                 assert(a->collisionType != None && b->collisionType != None);
 
+
+                bool maskMatch = false;
+                u32 mask = a->collisionLayer | b->collisionLayer;
+                for(int i = 0; i < ARR_LEN(collisionsMasks); i++) {
+                    if(collisionsMasks[i] == mask) {
+                        maskMatch = true;
+                        break;
+                    }
+                }
+
+                if(maskMatch == false) {
+                    continue;
+                }
+
+
                 bool collision = false;
-                // @TODO: implement other collision types
                 if(a->collisionType == AABB && b->collisionType == AABB) {
                     float aLeft  = a->position.x - a->collisionSize.x / 2;
                     float aRight = a->position.x + a->collisionSize.x / 2;

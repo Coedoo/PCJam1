@@ -131,3 +131,8 @@ template<typename T>
 T min(T a, T b) {
     return a < b ? a : b;
 }
+
+
+///////////////
+
+#define ARR_LEN(x) (sizeof(x) / sizeof((x)[0]))
