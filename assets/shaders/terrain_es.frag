@@ -3,6 +3,7 @@ precision mediump float;
 
 // out vec4 color;
 
+varying vec4 clipPos;
 varying vec2 uv;
 varying vec2 uv2;
 
@@ -19,8 +20,8 @@ float edgeFun(float m) {
 }
 
 void main() {
-    float mX = abs(uv2.x * 2.0 - 1.0);
-    float mY = abs(uv2.y * 2.0 - 1.0);
+    float mX = abs(uv2.x * 2.0 - 1.0) + (1.0 - clipPos.z) * 0.0007;
+    float mY = abs(uv2.y * 2.0 - 1.0) + (1.0 - clipPos.z) * 0.0007;
 
     vec3 edgeCol = vec3(1.0, 0.0, 1.0);
     vec3 surfaceColor = vec3(0.1, 0.0, 0.1);

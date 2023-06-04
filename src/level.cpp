@@ -18,9 +18,12 @@ struct Level {
     EnemySpawn* spawnSequence;
 };
 
+void ResetSpawns(Level* level);
 void StartLevel(Level* level) {
     level->started = true;
     level->startTime = GetTime();
+
+    ResetSpawns(level);
 }
 
 void SpawnSequence(Level level) {
@@ -82,7 +85,7 @@ void FillSpawnSequence(Level* level) {
     SimpleSequence(level, 4, 15.0f, 0.4f, {0.1f, 1}, {0.1f, 0.0f},  90, Walker);
     SimpleSequence(level, 4, 15.0f, 0.4f, {0.9f, 1}, {-0.1f, 0.0f}, 90, Walker);
 
-    SimpleSequence(level, 1, 19.0f, 0.4f, {0.9f, 1}, {-0.1f, 0.0f}, 90, BigOne);
+    SimpleSequence(level, 1, 19.0f, 0.4f, {0.5f, 1}, {-0.1f, 0.0f}, 270, BigOne);
 
     SimpleSequence(level, 4, 25.0f, 0.4f, {0.2f, 0}, { 0.0f, 0.0f}, 270, Walker);
     SimpleSequence(level, 4, 26.0f, 0.4f, {0.8f, 0}, {0, 0.0f},     270, Walker);
@@ -90,11 +93,27 @@ void FillSpawnSequence(Level* level) {
     SimpleSequence(level, 4, 28.0f, 0.4f, {0.6f, 0}, {0, 0.0f},     270, Walker);
 
 
+    SimpleSequence(level, 1, 32.0f, 0.4f, {0.8f, 0}, {-0.1f, 0.0f}, 270, BigOne);
+
+    SimpleSequence(level, 6, 38.0f, 0.4f, {0.5f, 0}, {0, 0.0f}, 265, WalkerShooter);
+    SimpleSequence(level, 6, 38.0f, 0.4f, {0.5f, 0}, {0, 0.0f}, 275, WalkerShooter);
+
+    SimpleSequence(level, 6, 43.0f, 0.4f, {0.2f, 0}, {0, 0.0f}, 265, WalkerShooter);
+    SimpleSequence(level, 6, 43.0f, 0.4f, {0.2f, 0}, {0, 0.0f}, 275, WalkerShooter);
+
+    SimpleSequence(level, 6, 47.0f, 0.4f, {0.7f, 0}, {0, 0.0f}, 265, WalkerShooter);
+    SimpleSequence(level, 6, 47.0f, 0.4f, {0.7f, 0}, {0, 0.0f}, 275, WalkerShooter);
+
+
+    SimpleSequence(level, 1, 52.0f, 0.1f, {0.2f, 0}, {0.6f, 0.0f}, 260, BigOne);
+    SimpleSequence(level, 1, 52.0f, 0.1f, {0.8f, 0}, {0.6f, 0.0f}, 280, BigOne);
+}
+
+void ResetSpawns(Level* level) {
     for(int i = 0; i < level->spawnsCount; i++) {
         level->spawnSequence[i].spawned = false;
     }
 }
-
 
 void DrawLevelUI() {
     char* temp = (char*) arena_alloc(&tempArena, 1024);
@@ -133,7 +152,7 @@ void DrawGameOverUI() {
 }
 
 void DrawWinScreen() {
-    char* gameOverText = "GAME WON";
+    char* gameOverText = "Frogs Killed!";
     const float fontSize = 60;
     const float spacing = 4;
 
@@ -141,6 +160,17 @@ void DrawWinScreen() {
     Vector2 pos = {windowWidth / 2.0f - textSize.x, windowHeight / 2.0f - textSize.y};
 
     DrawTextEx(GetFontDefault(), gameOverText, pos, fontSize, spacing, WHITE);
+
+    if((float)GetTime() - gameState.stateSwitchTime > 2) {
+        char* text = "Press space bar to continue";
+
+        pos = {windowWidth / 2.0f, windowHeight / 2.0f + 40};
+        DrawTextCentered(text, pos, 35, spacing);
+
+        if(IsKeyPressed(KEY_SPACE)) {
+            GoToTitleScreen();
+        }
+    }
 }
 
 void PlayerWonControlFunc(Entity* player) {

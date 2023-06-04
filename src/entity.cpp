@@ -52,6 +52,7 @@ struct Entity {
     bool toDestroy;
 
     float spawnTime;
+    Vector2 spawnLocation;
     float lifeTime;
 
     char* tag;
@@ -92,7 +93,7 @@ struct Entity {
 };
 
 
-#define MAX_ENTITY 1024
+#define MAX_ENTITY 2048
 int entityCount;
 Entity entities[MAX_ENTITY];
 
@@ -140,6 +141,7 @@ EntityHandle SpawnEntity(Entity preset, Vector3 position) {
     preset.handle = h;
     preset.position = position;
     preset.spawnTime = (float) GetTime();
+    preset.spawnLocation = {position.x, position.y};
 
     entities[h.index] = preset;
 
@@ -164,6 +166,10 @@ Entity* GetEntityPtr(EntityHandle handle) {
     }
 
     return &entities[handle.index];
+}
+
+void ClearAllEntities() {
+    memset(entities, 0, sizeof(Entity) * MAX_ENTITY);
 }
 
 /////
@@ -399,8 +405,8 @@ void BigOneControlFunc(Entity* entity) {
     static float fire;
 
     if(time < 0.5f) {
-        entity->position = Vector3Lerp({0, cameraBounds.max.y, 0}, 
-                                       {0, 2, 0},
+        entity->position = Vector3Lerp({entity->spawnLocation.x, cameraBounds.max.y, 0}, 
+                                       {entity->spawnLocation.x, 2, 0},
                                        EaseOutQuart(time / 0.5f));
     }
     else {
@@ -418,18 +424,19 @@ void BigOneControlFunc(Entity* entity) {
 
 void InitEnemyPresets() {
     Entity base = {};
-    base.flags = (Render | Collision | HaveHealth | DestroyOutsideCamera | LifeTime);
+    base.flags = (Render | Collision | HaveHealth | DestroyOutsideCamera | RotateToMovement);
     base.collisionLayer = ColLay_Enemy;
     base.collisionflags = ColFlag_Damage;
     base.tint = WHITE;
     base.damage = 1;
     base.lifeTime = 10;
+    base.sprite = CreateSprite(atlas, {0, 64, 64, 64});
+    base.tint = GREEN;
 
     {
         Entity e = base;
 
         e.tag = "Walker";
-        e.sprite = CreateSprite(atlas, {0, 32, 32, 32});
         e.size = 0.5f;
         e.collisionType = AABB;
         e.collisionSize = {0.5f, 0.5f};
@@ -447,11 +454,11 @@ void InitEnemyPresets() {
         Entity e = base;
 
         e.tag = "WalkerShooter";
-        e.sprite = CreateSprite(atlas, {0, 32, 32, 32});
         e.size = 0.5f;
         e.collisionType = Circle;
         e.collisionSize = {0.25f};
         e.HP = walkerHP;
+        e.tint = LIME;
 
         e.fireTimer = shooterInitFireTime;
 
@@ -468,11 +475,11 @@ void InitEnemyPresets() {
         Entity e = base;
 
         e.tag = "BigOne";
-        e.sprite = CreateSprite(atlas, {0, 32, 32, 32});
         e.size = 1;
         e.collisionType = AABB;
         e.collisionSize = {0.9f, 0.9f};
         e.HP = 800;
+        e.tint = DARKGREEN;
 
         e.fireTimer = shooterInitFireTime;
 

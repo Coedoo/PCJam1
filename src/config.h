@@ -11,7 +11,7 @@ const Vector2 logoFinalPosition = {windowWidth / 2.0f, windowHeight * 0.75f};
 const float titleAnimationTime = 20;
 
 const int terrainResX = 20;
-const int terrainResY = 150;
+const int terrainResY = 300;
 
 ///
 /// Player
@@ -22,13 +22,13 @@ const Vector3 playerShootOffset2 = {0.2f, 0.1f};
 const Vector3 playerShootOffset3 = {-0.2f, 0.1f};
 
 const int playerDamage = 10;
-const float playerSpeed = 8;
+const float playerSpeed = 7;
 const float playerBulletSpeed = 15;
 
 const float spawnAnimationTime = 1.5;
 const float invicibilityTime = spawnAnimationTime + 2;
 
-const int playerLifes = 10;
+const int playerLifes = 1;
 
 const float playerFireInterval = 0.1f;
 

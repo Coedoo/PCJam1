@@ -107,7 +107,9 @@ void StateWindow() {
         mu_text(&muCtx, tmp);
         sprintf(tmp, "Fin: %d", gameState.levelCompleted);
         mu_text(&muCtx, tmp);
-        sprintf(tmp, "EnCtn: %d", gameState.enemiesCount);
+        sprintf(tmp, "EneCtn: %d", gameState.enemiesCount);
+        mu_text(&muCtx, tmp);
+        sprintf(tmp, "EntCtn: %d", entityCount);
         mu_text(&muCtx, tmp);
 
         mu_end_window(&muCtx);
@@ -166,12 +168,21 @@ Mesh CreateTerrainMesh() {
 void GoToTitleScreen() {
     gameState.state = Title;
     gameState.stateSwitchTime = (float) GetTime();
+
+    ClearAllEntities();
+
+    StartTitleScreenAnim(&titleScreen);
 }
 
 void GoToGame() {
     gameState.state = Game;
     gameState.currentPlayerLifes = playerLifes;
     gameState.stateSwitchTime = (float) GetTime();
+
+    gameState.score = 0;
+
+    StopMusicStream(musicLib[GameMusic]);
+    PlayMusicStream(musicLib[GameMusic]);
 
     StartLevel(&level);
 }
@@ -214,12 +225,11 @@ int main()
     ////////
     
     InitAudioDevice();
-    SetMasterVolume(1);
+    SetMasterVolume(0.7f);
 
     ////////
 
     titleScreen = CreateTitleScreen();
-    StartTitleScreenAnim(&titleScreen);
     ////
 
     // Setup camera
@@ -261,7 +271,11 @@ int main()
     resLoc = GetShaderLocation(skyboxShader, "resolution");
     timeLoc = GetShaderLocation(skyboxShader, "time");
 
+#if WEB_BUILD
+    bloomShader = LoadShader(0, "assets/shaders/bloom_es.frag");
+#else
     bloomShader = LoadShader(0, "assets/shaders/bloom.frag");
+#endif
 
     /////////////////
 
@@ -282,6 +296,8 @@ int main()
     // rlDisableDepthMask();
 
     /////////////////////////
+
+    GoToTitleScreen();
 
 #if WEB_BUILD
     emscripten_set_main_loop(UpdateDrawFrame, 0, 1);
@@ -313,6 +329,7 @@ void UpdateDrawFrame()
         }
         else if(gameState.state == Game)
         {
+            UpdateMusicStream(musicLib[GameMusic]);
             if(IsValidHandle(gameState.playerHandle) == false) {
                 gameState.playerHandle = CreatePlayerEntity();
             }
@@ -497,7 +514,8 @@ void UpdateDrawFrame()
     BeginTextureMode(renderTexture);
     ClearBackground({219, 216, 225, 0});
 
-
+    float t = (float) GetTime();
+    SetShaderValue(skyboxShader, timeLoc, &t, RL_SHADER_UNIFORM_FLOAT);
     Vector2 res = {(float)GetScreenWidth(), (float)GetScreenHeight()};
     SetShaderValue(skyboxShader, resLoc, &res, RL_SHADER_UNIFORM_VEC2);
 
@@ -519,16 +537,13 @@ void UpdateDrawFrame()
 
     rlEnd();
     EndShaderMode();
-
-
+    
     BeginMode3D(camera);
-    {
-        float t = (float) GetTime();
-        SetShaderValue(skyboxShader, timeLoc, &t, RL_SHADER_UNIFORM_FLOAT);
-
-        for(int i = 0; i < 5; i++) {
-            DrawModel(terrainModel, {0, -15, -terrainResY*8*(i+1) + (float)GetTime() * 9}, 8.0f, WHITE);
+        t = (float)GetTime() - gameState.stateSwitchTime;
+        for(int i = 0; i < 1; i++) {
+            DrawModel(terrainModel, {0, -15, -terrainResY*8*(i+1) + t * 9}, 8.0f, WHITE);
         }
+
         /// Render Entities
         for(int i = 0; i < MAX_ENTITY; i++) {
             Entity* e = entities + i;
@@ -539,6 +554,18 @@ void UpdateDrawFrame()
             }
         }
 
+    EndMode3D();
+
+    EndTextureMode();
+
+    BeginDrawing(); 
+
+    BeginShaderMode(bloomShader);
+        DrawTextureRec(renderTexture.texture, { 0, 0, (float)renderTexture.texture.width, (float)-renderTexture.texture.height }, { 0, 0 }, WHITE);
+    EndShaderMode();
+
+    BeginMode3D(camera);
+    {
         if(drawCollisionShapes) {
             DrawBoundingBox(cameraBounds, GREEN);
 
@@ -556,14 +583,7 @@ void UpdateDrawFrame()
         }
     }
     EndMode3D();
-    EndTextureMode();
 
-    BeginDrawing(); 
-    // BeginShaderMode(bloomShader);
-
-    
-        DrawTextureRec(renderTexture.texture, { 0, 0, (float)renderTexture.texture.width, (float)-renderTexture.texture.height }, { 0, 0 }, WHITE);
-    // EndShaderMode();
 
 #if DEBUG
     DrawFPS(windowWidth - 100, 0);
@@ -591,6 +611,7 @@ void UpdateDrawFrame()
             u32 genTmp = e->handle.generation;
             memset(e, 0, sizeof(Entity));
             e->handle.generation = genTmp;
+            entityCount -= 1;
         }
     }
 }

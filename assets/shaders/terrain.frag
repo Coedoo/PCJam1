@@ -2,6 +2,7 @@
 
 out vec4 color;
 
+in vec4 clipPos;
 in vec2 uv;
 in vec2 uv2;
 
@@ -18,8 +19,8 @@ float edgeFun(float m) {
 }
 
 void main() {
-    float mX = abs(uv2.x * 2 - 1);
-    float mY = abs(uv2.y * 2 - 1);
+    float mX = abs(uv2.x * 2 - 1) + (1 - clipPos.z) * 0.0007;
+    float mY = abs(uv2.y * 2 - 1) + (1 - clipPos.z) * 0.0007;
 
     vec3 edgeCol = vec3(1, 0, 1);
     vec3 surfaceColor = vec3(0.1, 0, 0.1);

@@ -17,7 +17,7 @@ void main() {
     vec2 fragCoord = vec2(resolution.x * fragTexCoord.x, resolution.y * fragTexCoord.y);
     vec2 uv = (2.0f * fragCoord - resolution.xy) / resolution.y;
     
-    vec2 sunPos = vec2(0.8, 0.3);
+    vec2 sunPos = vec2(0.4, 0.3);
     float sunSize = 0.5;
 
 

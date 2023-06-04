@@ -9,6 +9,7 @@ uniform float time;
 
 out vec2 uv;
 out vec2 uv2;
+out vec4 clipPos;
 
 //
 // Description : Array and textureless GLSL 2D simplex noise function.
@@ -92,5 +93,6 @@ void main() {
 
     vec4 pos = vec4(aPos, 1.0);
     pos.y += 5 * (snoise(vec2(pos.x, pos.z) * 3f) * 0.5f + 0.5f) * center;
-    gl_Position = mvp * pos;
+    clipPos = mvp * pos;
+    gl_Position = clipPos;
 }
