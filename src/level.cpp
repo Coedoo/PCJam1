@@ -39,7 +39,13 @@ void SpawnSequence(Level level) {
             Vector3 point = {};
             point.x = Lerp(cameraBounds.min.x, cameraBounds.max.x, s->spawnPoint.x);
             point.y = Lerp(cameraBounds.max.x, cameraBounds.min.y, s->spawnPoint.y);
+
             SpawnEntity(preset, point);
+            gameState.enemiesCount += 1;
+
+            if(i == level.spawnsCount - 1) {
+                gameState.levelCompleted = true;
+            }
         }
     }
 }
@@ -77,4 +83,35 @@ void DrawLevelUI() {
 
 void DrawGameOverUI() {
     char* gameOverText = "GAME OVER";
+    const float fontSize = 60;
+    const float spacing = 4;
+
+    Vector2 textSize = MeasureTextEx(GetFontDefault(), gameOverText, fontSize, spacing) / 2.0f;
+    Vector2 pos = {windowWidth / 2.0f - textSize.x, windowHeight / 2.0f - textSize.y};
+
+    DrawTextEx(GetFontDefault(), gameOverText, pos, fontSize, spacing, WHITE);
+}
+
+void DrawWinScreen() {
+    char* gameOverText = "GAME WON";
+    const float fontSize = 60;
+    const float spacing = 4;
+
+    Vector2 textSize = MeasureTextEx(GetFontDefault(), gameOverText, fontSize, spacing) / 2.0f;
+    Vector2 pos = {windowWidth / 2.0f - textSize.x, windowHeight / 2.0f - textSize.y};
+
+    DrawTextEx(GetFontDefault(), gameOverText, pos, fontSize, spacing, WHITE);
+}
+
+void PlayerWonControlFunc(Entity* player) {
+    float t = (float) GetTime() - player->spawnTime;
+
+    if(t < winAnim1Time) {
+        float p  = t / winAnim1Time;
+        player->position = Vector3Lerp(gameState.playerWonPosition, {0,-2,0}, EaseOutQuart(p));
+    }
+    else {
+        float p = (t - winAnim1Time) / winAnim2Time;
+        player->position = Vector3Lerp({0,-2,0}, {0,cameraBounds.max.y + 10,0}, p);
+    }
 }

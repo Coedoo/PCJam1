@@ -13,7 +13,7 @@ if "%1" == "release" (
     set compile_flags=%compile_flags% /O2
     set linker_flags=%linker_flags% /SUBSYSTEM:windows /ENTRY:mainCRTStartup
 ) else (
-    set compile_flags=%compile_flags%  /Zi
+    set compile_flags=%compile_flags%  /Zi /DDEBUG
 )
 
 if not exist build mkdir build

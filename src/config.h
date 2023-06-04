@@ -22,9 +22,14 @@ const float playerSpeed = 8;
 const float playerBulletSpeed = 15;
 
 const float spawnAnimationTime = 1.5;
-const float invicibilityTime = spawnAnimationTime + 3;
+const float invicibilityTime = spawnAnimationTime + 0;
 
 const int playerLifes = 3;
+
+const float playerFireInterval = 0.05f;
+
+const float winAnim1Time = 3;
+const float winAnim2Time = 0.5f;
 
 ///////
 // Enemies
@@ -36,6 +41,7 @@ const float walkerMoveSpeed = 3;
 
 /// Debug Flags
 bool showDebug;
+bool showStateWindow;
 int controlCamera;
 int drawCollisionShapes;
 
@@ -45,13 +51,20 @@ enum State {
     Title,
     Game,
     GameOver,
+    GameWon,
 };
 
 struct GameState {
     State state;
     EntityHandle playerHandle;
+
     int currentPlayerLifes;
     int score;
+
+    bool levelCompleted;
+    int enemiesCount;
+
+    Vector3 playerWonPosition;
 };
 
 GameState gameState;

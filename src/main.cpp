@@ -58,8 +58,10 @@ struct EntityHandle {
 
 void GoToTitleScreen();
 void GoToGame();
-void GotToScoreScreen();
+void GoToGameOver();
+void GoToGameWon();
 
+#include "easings.cpp"
 #include "common.cpp"
 #include "sprite.cpp"
 #include "title_screen.cpp"
@@ -92,6 +94,21 @@ void DebugWindow() {
         Vector2 pos = GetMousePosition();
         sprintf(tmp, "Pos: {%f, %f}", pos.x, pos.y);
 
+        mu_text(&muCtx, tmp);
+
+        mu_end_window(&muCtx);
+    }
+}
+
+void StateWindow() {
+    if(mu_begin_window(&muCtx, "Debug", mu_rect(0, 0, 200, 150))) {
+        char tmp[128];
+
+        sprintf(tmp, "State: %d", gameState.state);
+        mu_text(&muCtx, tmp);
+        sprintf(tmp, "Fin: %d", gameState.levelCompleted);
+        mu_text(&muCtx, tmp);
+        sprintf(tmp, "EnCtn: %d", gameState.enemiesCount);
         mu_text(&muCtx, tmp);
 
         mu_end_window(&muCtx);
@@ -158,8 +175,20 @@ void GoToGame() {
     StartLevel(&level);
 }
 
-void GotToScoreScreen() {
+void GoToGameOver() {
     gameState.state = GameOver;
+}
+
+void GoToGameWon() {
+    gameState.state = GameWon;
+
+    Entity* player = GetEntityPtr(gameState.playerHandle);
+    assert(player);
+
+    gameState.playerWonPosition = player->position;
+
+    player->ControlFunction = PlayerWonControlFunc;
+    player->spawnTime = (float)GetTime();
 }
 
 
@@ -253,10 +282,6 @@ void UpdateDrawFrame()
     mu_begin(&muCtx);
 
     if(showDebug == false) {
-        if(IsKeyPressed(KEY_S)) {
-            StartLevel(&level);
-        }
-
         /////
         // Level Update
         ////
@@ -304,6 +329,27 @@ void UpdateDrawFrame()
             
             if(f & SpriteAnim) {
                 UpdateAnimFrame(&e->sprite, (float)GetTime() - e->spawnTime);
+            }
+
+
+            if(f & DestroyOutsideCamera) {
+                BoundingBox bounds = GetEntityBounds(e);
+                bool wasInsideCamera = e->isInsideCamera;
+
+                if(bounds.max.x < cameraBounds.min.x || 
+                    bounds.min.x > cameraBounds.max.x || 
+                    bounds.max.y < cameraBounds.min.y || 
+                    bounds.min.y > cameraBounds.max.y)
+                {
+                    e->isInsideCamera = false;
+                }
+                else {
+                    e->isInsideCamera = true;
+                }
+
+                if(wasInsideCamera && e->isInsideCamera == false) {
+                    DestroyEntity(e->handle);
+                }
             }
         }
 
@@ -408,13 +454,21 @@ void UpdateDrawFrame()
         UpdateCamera(&camera, CAMERA_FREE);
     }
 
+#if DEBUG
     if(IsKeyPressed(KEY_Y)) {
         showDebug = !showDebug;
+    }
+    if(IsKeyPressed(KEY_U)) {
+        showStateWindow = !showStateWindow;
     }
     if(showDebug) {
         DebugWindow();
     }
 
+    if(showStateWindow) {
+        StateWindow();
+    }
+#endif
     mu_end(&muCtx);
 
     // BeginDrawing();
@@ -494,6 +548,12 @@ void UpdateDrawFrame()
     }
     else if(gameState.state == Game) {
         DrawLevelUI();
+    }
+    else if(gameState.state == GameOver) {
+        DrawGameOverUI();
+    }
+    else if(gameState.state == GameWon) {
+        DrawWinScreen();
     }
 
     muiRender(&muCtx);
