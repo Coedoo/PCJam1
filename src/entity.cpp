@@ -7,6 +7,7 @@ enum EntityFlag {
     LifeTime = (1 << 4),
     SpriteAnim = (1 << 5),
     DestroyOutsideCamera = (1 << 6),
+    RotateToMovement = (1 << 7),
 };
 
 /////////////
@@ -56,6 +57,7 @@ struct Entity {
     char* tag;
 
     void (*ControlFunction)(Entity* entity);
+    void (*DestroyCallback)(Entity* entity, DestroyReason reason);
 
     u32 flags;
 
@@ -70,7 +72,9 @@ struct Entity {
 
     //
     int HP;
-    void (*DestroyCallback)(Entity* entity, DestroyReason reason);
+
+    ///
+    int score;
 
     // collision
     CollisionType collisionType;
@@ -80,6 +84,7 @@ struct Entity {
 
     //
     int damage;
+    float speed;
     float fireTimer;
 
     ///
@@ -172,7 +177,7 @@ Vector2 GetMovementInput() {
     if(IsKeyDown(KEY_UP))        input.y =  1;
     else if(IsKeyDown(KEY_DOWN)) input.y = -1;
 
-    return input;
+    return Vector2Normalize(input);
 }
 
 
@@ -227,7 +232,10 @@ void PlayerControlFunc(Entity* player) {
         if(player->fireTimer < 0) {
 
             player->fireTimer = playerFireInterval;
-            CreatePlayerBullet(player->position);
+
+            CreatePlayerBullet(player->position + playerShootOffset1);
+            CreatePlayerBullet(player->position + playerShootOffset2);
+            CreatePlayerBullet(player->position + playerShootOffset3);
             
             PlaySound(audioLib[Shot1]);
         }
@@ -238,7 +246,7 @@ void PlayerDestroyCallback(Entity* player, DestroyReason reason) {
     gameState.currentPlayerLifes -= 1;
     PlaySound(audioLib[Scream0]);
 
-    if(gameState.currentPlayerLifes < 0) {
+    if(gameState.currentPlayerLifes <= 0) {
         GoToGameOver();
     }
 }
@@ -274,7 +282,11 @@ EntityHandle CreatePlayerEntity() {
 ///
 
 void BulletControlFunc(Entity* bullet) {
-    bullet->position.y += playerBulletSpeed * GetFrameTime();
+    Vector2 dir = DirectionFromRotation(bullet->rotation);
+    Vector2 move = dir * bullet->speed * GetFrameTime();
+
+    bullet->position.x += move.x;
+    bullet->position.y += move.y;
 }
 
 void CreatePlayerBullet(Vector3 position) {
@@ -293,7 +305,10 @@ void CreatePlayerBullet(Vector3 position) {
     bullet->collisionflags = (CollisionFlag)(ColFlag_DestroyAfterHit | ColFlag_Damage);
     bullet->collisionLayer = ColLay_PlayerBullet;
 
+    bullet->speed = playerBulletSpeed;
     bullet->damage = playerDamage;
+
+    bullet->rotation = 90;
 
     bullet->ControlFunction = BulletControlFunc;
 }
@@ -303,6 +318,8 @@ void CreatePlayerBullet(Vector3 position) {
 /////
 enum EnemyType {
     Walker,
+    WalkerShooter,
+    BigOne,
     Count,
 };
 
@@ -313,6 +330,7 @@ void EnemyDestroyCallback(Entity* entity, DestroyReason reason) {
 
     if(reason == LowHP) {
         PlaySound(audioLib[Dead1]);
+        gameState.score += entity->score;
     }
 
     if(gameState.levelCompleted && gameState.enemiesCount == 0) {
@@ -322,28 +340,147 @@ void EnemyDestroyCallback(Entity* entity, DestroyReason reason) {
 }
 
 void WalkerControlFunc(Entity* entity) {
-    entity->position.y -= GetFrameTime() * walkerMoveSpeed;
+    Vector2 dir = DirectionFromRotation(entity->rotation);
+    Vector2 move = dir * walkerMoveSpeed * GetFrameTime();
+    
+    // printf("%f, %f\n", move.x, move.y);
+    entity->position.x += move.x;
+    entity->position.y += move.y;
+}
+
+void SpaenEnemyBullet(Vector3 position, float direction, float speed) {
+    Entity* bullet = CreateEntity();
+
+    bullet->tag = "Bullet";
+
+    bullet->position = position;
+    bullet->rotation = direction;
+
+    bullet->flags = (EntityFlag)(Render | Collision | Damaging | DestroyOutsideCamera | RotateToMovement);
+    bullet->size = 0.4f;
+    bullet->sprite = CreateSprite(atlas, {32, 32, 32, 32});
+
+    bullet->collisionType = CollisionType::Circle;
+    bullet->collisionSize.x = 0.1f;
+
+    bullet->collisionflags = (CollisionFlag)(ColFlag_DestroyAfterHit | ColFlag_Damage);
+    bullet->collisionLayer = ColLay_EnemyBullet;
+
+    bullet->tint = RED;
+
+    bullet->damage = 1;
+    bullet->speed = speed;
+
+    bullet->ControlFunction = BulletControlFunc;
+}
+
+void WalkerShooterControlFunc(Entity* entity) {
+    WalkerControlFunc(entity);
+
+    if(IsValidHandle(gameState.playerHandle) == false) {
+        return;
+    }
+
+    Entity* player = GetEntityPtr(gameState.playerHandle);
+
+    Vector3 delta = player->position - entity->position;
+    float angle = atan2f(delta.y, delta.x) * RAD2DEG;
+
+    entity->fireTimer -= GetFrameTime();
+    if(entity->fireTimer < 0) {
+        entity->fireTimer = shooterFireTime;
+        SpaenEnemyBullet(entity->position, angle, shooterBulletSpeed);
+    }
+}
+
+void BigOneControlFunc(Entity* entity) {
+    float time = (float) GetTime() - entity->spawnTime;
+
+    static float fire;
+
+    if(time < 0.5f) {
+        entity->position = Vector3Lerp({0, cameraBounds.max.y, 0}, 
+                                       {0, 2, 0},
+                                       EaseOutQuart(time / 0.5f));
+    }
+    else {
+        entity->fireTimer -= GetFrameTime();
+        if(entity->fireTimer < 0) {
+            entity->fireTimer = 0.5;
+
+            for(int i = 0; i < 16; i++) {
+                SpaenEnemyBullet(entity->position, ((float) i / 16) * 360 + fire * 10, 3);
+            }
+            fire += 1;
+        }
+    }
 }
 
 void InitEnemyPresets() {
+    Entity base = {};
+    base.flags = (Render | Collision | HaveHealth | DestroyOutsideCamera | LifeTime);
+    base.collisionLayer = ColLay_Enemy;
+    base.collisionflags = ColFlag_Damage;
+    base.tint = WHITE;
+    base.damage = 1;
+    base.lifeTime = 10;
+
     {
-        Entity e = {};
+        Entity e = base;
 
         e.tag = "Walker";
-        e.flags = (Render | Collision | HaveHealth | DestroyOutsideCamera);
         e.sprite = CreateSprite(atlas, {0, 32, 32, 32});
         e.size = 0.5f;
         e.collisionType = AABB;
         e.collisionSize = {0.5f, 0.5f};
         e.HP = walkerHP;
-        e.collisionLayer = ColLay_Enemy;
-        e.collisionflags = ColFlag_Damage;
-        e.damage = 1;
-        e.tint = WHITE;
+
+        e.score = 100;
 
         e.ControlFunction = WalkerControlFunc;
         e.DestroyCallback = EnemyDestroyCallback;
 
         enemyPresets[Walker] = e;
+    }
+
+    {
+        Entity e = base;
+
+        e.tag = "WalkerShooter";
+        e.sprite = CreateSprite(atlas, {0, 32, 32, 32});
+        e.size = 0.5f;
+        e.collisionType = Circle;
+        e.collisionSize = {0.25f};
+        e.HP = walkerHP;
+
+        e.fireTimer = shooterInitFireTime;
+
+        e.score = 100;
+
+        e.ControlFunction = WalkerShooterControlFunc;
+        e.DestroyCallback = EnemyDestroyCallback;
+
+        enemyPresets[WalkerShooter] = e;
+    }
+
+
+    {
+        Entity e = base;
+
+        e.tag = "BigOne";
+        e.sprite = CreateSprite(atlas, {0, 32, 32, 32});
+        e.size = 1;
+        e.collisionType = AABB;
+        e.collisionSize = {0.9f, 0.9f};
+        e.HP = 800;
+
+        e.fireTimer = shooterInitFireTime;
+
+        e.score = 400;
+
+        e.ControlFunction = BigOneControlFunc;
+        e.DestroyCallback = EnemyDestroyCallback;
+
+        enemyPresets[BigOne] = e;
     }
 }

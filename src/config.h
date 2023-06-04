@@ -1,6 +1,6 @@
 const int TempArenaSize = 4 * 1024 * 1024;
 
-const int windowWidth = 1700;
+const int windowWidth = 1600;
 const int windowHeight = 900;
 
 ////
@@ -17,14 +17,18 @@ const int terrainResY = 150;
 /// Player
 ///
 
+const Vector3 playerShootOffset1 = {0, 0.5f};
+const Vector3 playerShootOffset2 = {0.2f, 0.1f};
+const Vector3 playerShootOffset3 = {-0.2f, 0.1f};
+
 const int playerDamage = 10;
 const float playerSpeed = 8;
 const float playerBulletSpeed = 15;
 
 const float spawnAnimationTime = 1.5;
-const float invicibilityTime = spawnAnimationTime + 0;
+const float invicibilityTime = spawnAnimationTime + 2;
 
-const int playerLifes = 3;
+const int playerLifes = 10;
 
 const float playerFireInterval = 0.1f;
 
@@ -37,6 +41,10 @@ const float winAnim2Time = 0.5f;
 
 const int walkerHP = 80;
 const float walkerMoveSpeed = 3;
+
+const float shooterInitFireTime = 1;
+const float shooterFireTime = 3;
+const float shooterBulletSpeed = 6;
 
 
 /// Debug Flags
@@ -56,6 +64,8 @@ enum State {
 
 struct GameState {
     State state;
+    float stateSwitchTime;
+
     EntityHandle playerHandle;
 
     int currentPlayerLifes;

@@ -165,26 +165,40 @@ Mesh CreateTerrainMesh() {
 
 void GoToTitleScreen() {
     gameState.state = Title;
+    gameState.stateSwitchTime = (float) GetTime();
 }
 
 void GoToGame() {
     gameState.state = Game;
     gameState.currentPlayerLifes = playerLifes;
+    gameState.stateSwitchTime = (float) GetTime();
 
     StartLevel(&level);
 }
 
 void GoToGameOver() {
+    if(gameState.state != Game) {
+        return;
+    }
+
     gameState.state = GameOver;
+    gameState.stateSwitchTime = (float) GetTime();
 }
 
 void GoToGameWon() {
+    if(gameState.state != Game) {
+        return;
+    }
+
     gameState.state = GameWon;
+    gameState.stateSwitchTime = (float) GetTime();
 
     Entity* player = GetEntityPtr(gameState.playerHandle);
     assert(player);
 
     gameState.playerWonPosition = player->position;
+
+    player->flags = (player->flags & ~Collision);
 
     player->ControlFunction = PlayerWonControlFunc;
     player->spawnTime = (float)GetTime();
@@ -230,11 +244,20 @@ int main()
 
     //////
     terrainModel = LoadModelFromMesh(CreateTerrainMesh());
+#if WEB_BUILD
+    terrainShader = LoadShader("assets/shaders/terrain_es.vert", "assets/shaders/terrain_es.frag");
+#else
     terrainShader = LoadShader("assets/shaders/terrain.vert", "assets/shaders/terrain.frag");
+#endif
     // timeLoc = GetShaderLocation(terrainShader, "time");
     terrainModel.materials[0].shader = terrainShader;
 
+#if WEB_BUILD
+    skyboxShader = LoadShader(0, "assets/shaders/skybox_es.frag");
+#else
     skyboxShader = LoadShader(0, "assets/shaders/skybox.frag");
+#endif
+
     resLoc = GetShaderLocation(skyboxShader, "resolution");
     timeLoc = GetShaderLocation(skyboxShader, "time");
 
@@ -474,7 +497,6 @@ void UpdateDrawFrame()
     BeginTextureMode(renderTexture);
     ClearBackground({219, 216, 225, 0});
 
-    DrawFPS(0, 0);
 
     Vector2 res = {(float)GetScreenWidth(), (float)GetScreenHeight()};
     SetShaderValue(skyboxShader, resLoc, &res, RL_SHADER_UNIFORM_VEC2);
@@ -511,8 +533,9 @@ void UpdateDrawFrame()
         for(int i = 0; i < MAX_ENTITY; i++) {
             Entity* e = entities + i;
             if(e->flags & Render) {
-                DrawBillboardRec(camera, e->sprite.texture, e->sprite.currentTexRect, 
-                                 e->position, {e->size, e->size}, e->tint);
+                float rot = (e->flags & RotateToMovement) ? e->rotation - 90 : 0;
+                DrawBillboardPro(camera, e->sprite.texture, e->sprite.currentTexRect, 
+                                e->position, {0, 1, 0}, {e->size, e->size}, {0, 0}, rot, e->tint);
             }
         }
 
@@ -542,6 +565,10 @@ void UpdateDrawFrame()
         DrawTextureRec(renderTexture.texture, { 0, 0, (float)renderTexture.texture.width, (float)-renderTexture.texture.height }, { 0, 0 }, WHITE);
     // EndShaderMode();
 
+#if DEBUG
+    DrawFPS(windowWidth - 100, 0);
+#endif
+
     if(gameState.state == Title) {
         DrawTitleScreen(&titleScreen);
     }
@@ -557,7 +584,6 @@ void UpdateDrawFrame()
 
     muiRender(&muCtx);
     EndDrawing();
-
 
     for(int i = 0; i < MAX_ENTITY; i++) {
         Entity* e = entities + i;

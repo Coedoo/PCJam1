@@ -155,3 +155,12 @@ Color ColorLerp(Color a, Color b, float t) {
         (unsigned char)(a.a + (unsigned char)((b.a - a.a) * t)),
     };
 }
+
+////
+
+Vector2 DirectionFromRotation(float rot) {
+    return {
+        cosf(rot * DEG2RAD),
+        sinf(rot * DEG2RAD),
+    };
+}
