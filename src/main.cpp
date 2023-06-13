@@ -168,6 +168,7 @@ Mesh CreateTerrainMesh() {
 void GoToTitleScreen() {
     gameState.state = Title;
     gameState.stateSwitchTime = (float) GetTime();
+    gameState.levelCompleted = false;
 
     gameState.gameStartTime = gameState.stateSwitchTime;
 
@@ -180,6 +181,7 @@ void GoToGame() {
     gameState.state = Game;
     gameState.currentPlayerLifes = playerLifes;
     gameState.stateSwitchTime = (float) GetTime();
+    gameState.levelCompleted = false;
 
     gameState.score = 0;
 

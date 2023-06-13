@@ -169,6 +169,7 @@ Entity* GetEntityPtr(EntityHandle handle) {
 }
 
 void ClearAllEntities() {
+    entityCount = 0;
     memset(entities, 0, sizeof(Entity) * MAX_ENTITY);
 }
 

@@ -113,12 +113,14 @@ void ResetSpawns(Level* level) {
     for(int i = 0; i < level->spawnsCount; i++) {
         level->spawnSequence[i].spawned = false;
     }
+
+    gameState.enemiesCount = 0;
 }
 
 void DrawLevelUI() {
     char* temp = (char*) arena_alloc(&tempArena, 1024);
 
-    sprintf(temp, "Lifes: %d", gameState.currentPlayerLifes);
+    sprintf(temp, "Lives: %d", gameState.currentPlayerLifes);
     DrawText(temp, 0, 0, 40, WHITE);
     sprintf(temp, "Score: %d", gameState.score);
     DrawText(temp, 0, 45, 40, WHITE);
